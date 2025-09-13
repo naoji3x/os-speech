@@ -1,0 +1,59 @@
+name: Release archives on tag
+
+on:
+  push:
+    tags: ['v*'] # 例: v1.4.0
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Ensure tag commit is on main (safety)
+        run: |
+          git fetch --unshallow || true
+          git fetch origin main
+          git branch -r --contains $GITHUB_SHA | grep -q 'origin/main' || \
+            (echo "::error::Tag commit is not on main. Abort." && exit 1)
+
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: Extract Unity / App versions
+        run: node scripts/extract_versions.mjs >> $GITHUB_ENV
+
+      - name: Extract release notes from CHANGELOG.md
+        run: node scripts/changelog_extract.mjs ${{ github.ref_name }}
+
+      - name: Make dist dir
+        run: mkdir -p dist
+
+      - name: Create source .tar.gz
+        run: |
+          git archive --format=tar.gz \
+            --prefix="${{ github.event.repository.name }}-${{ github.ref_name }}/" \
+            -o "dist/${{ github.event.repository.name }}-${{ github.ref_name }}-Unity${{ env.UNITY_VERSION }}.tar.gz" \
+            HEAD
+      - name: Create source .zip
+        run: |
+          git archive --format=zip \
+            --prefix="${{ github.event.repository.name }}-${{ github.ref_name }}/" \
+            -o "dist/${{ github.event.repository.name }}-${{ github.ref_name }}-Unity${{ env.UNITY_VERSION }}.zip" \
+            HEAD
+
+      - name: Create GitHub Release & upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }} (Unity ${{ env.UNITY_VERSION }})
+          body_path: dist/RELEASE_BODY.md
+          prerelease: false
+          make_latest: true
+          files: |
+            dist/*.tar.gz
+            dist/*.zip

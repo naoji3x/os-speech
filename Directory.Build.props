@@ -1,0 +1,20 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <Nullable>enable</Nullable>
+    <!-- TreatWarningsAsErrors は .editorconfig / CI で制御でOK -->
+  </PropertyGroup>
+  <!-- .editorconfig は AnalyzerConfigFiles で明示 -->
+  <ItemGroup>
+    <AnalyzerConfigFiles Include="$(MSBuildThisFileDirectory).editorconfig" />
+  </ItemGroup>
+  <!-- StyleCop の設定ファイルは AdditionalFiles で配布 -->
+  <ItemGroup>
+    <AdditionalFiles
+      Include="$(MSBuildThisFileDirectory)stylecop.json"
+      Condition="Exists('$(MSBuildThisFileDirectory)stylecop.json')"
+    />
+  </ItemGroup>
+</Project>

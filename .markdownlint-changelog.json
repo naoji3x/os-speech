@@ -1,0 +1,7 @@
+{
+  "extends": ".markdownlint.json",
+  "MD026": {
+    "punctuation": ".,;:!?"
+  },
+  "MD036": false
+}
