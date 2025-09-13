@@ -127,8 +127,8 @@ lerna-debug.log*
 .npm
 .eslintcache
 .nyc_output
-dist/
-build/
+/dist/
+/build/
 *.tgz
 *.tar.gz
 .env
