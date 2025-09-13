@@ -16,7 +16,7 @@ import java.util.concurrent.CountDownLatch;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-public class TtsBridge {
+public class TextToSpeech {
 
     public interface Callback {
         void onEvent(int ev); // 0=Start,1=Finish,2=Cancel,5=Error
@@ -104,12 +104,12 @@ public class TtsBridge {
     }
 
     public static boolean isSpeaking() {
-        return tts != null && tts.isSpeaking();
+        return tts != null && TextToSpeech.isSpeaking();
     }
 
     public static void stop() {
         if (tts != null)
-            tts.stop();
+            TextToSpeech.stop();
     }
 
     public static int speak(String text, String voiceOrLocale, float rate01, float pitch, float volume01,
