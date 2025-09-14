@@ -47,6 +47,7 @@ namespace TinyShrine.OSSpeech.Sample
 
         private void Awake()
         {
+            Debug.Log("OSSpeechSample Awake");
             // メインスレッドの SynchronizationContext を渡す（ここがポイント）
             SpeechToTextService.Init(locale: "ja-JP", mainContext: System.Threading.SynchronizationContext.Current);
             SpeechToTextService.OnPartial += s => field.text = s;

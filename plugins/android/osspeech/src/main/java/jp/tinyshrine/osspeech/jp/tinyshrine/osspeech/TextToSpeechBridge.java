@@ -3,6 +3,7 @@ package jp.tinyshrine.osspeech;
 import android.content.Context;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.speech.tts.UtteranceProgressListener;
 
 import java.io.File;
@@ -16,7 +17,7 @@ import java.util.concurrent.CountDownLatch;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-public class TextToSpeech {
+public class TextToSpeechBridge {
 
     public interface Callback {
         void onEvent(int ev); // 0=Start,1=Finish,2=Cancel,5=Error
@@ -90,10 +91,10 @@ public class TextToSpeech {
             return;
         if (idOrNull == null || idOrNull.isEmpty())
             return;
-        Set<TextToSpeech.Voice> voices = tts.getVoices();
+        Set<Voice> voices = tts.getVoices();
         if (voices == null)
             return;
-        for (TextToSpeech.Voice v : voices) {
+        for (Voice v : voices) {
             if (idOrNull.equals(v.getName())) { // Voice#getName() を ID とみなす
                 tts.setVoice(v);
                 return;
@@ -104,12 +105,12 @@ public class TextToSpeech {
     }
 
     public static boolean isSpeaking() {
-        return tts != null && TextToSpeech.isSpeaking();
+        return tts != null && tts.isSpeaking();
     }
 
     public static void stop() {
         if (tts != null)
-            TextToSpeech.stop();
+            tts.stop();
     }
 
     public static int speak(String text, String voiceOrLocale, float rate01, float pitch, float volume01,
@@ -146,9 +147,9 @@ public class TextToSpeech {
         try {
             JSONArray arr = new JSONArray();
             if (tts != null) {
-                Set<TextToSpeech.Voice> vs = tts.getVoices();
+                Set<Voice> vs = tts.getVoices();
                 if (vs != null) {
-                    for (TextToSpeech.Voice v : vs) {
+                    for (Voice v : vs) {
                         JSONObject o = new JSONObject();
                         o.put("identifier", v.getName()); // C# 側の SetVoiceId と一致させる
                         o.put("language", v.getLocale().toLanguageTag());
@@ -218,10 +219,10 @@ public class TextToSpeech {
     private static boolean applyVoiceByName(String name) {
         if (tts == null)
             return false;
-        Set<TextToSpeech.Voice> voices = tts.getVoices();
+        Set<Voice> voices = tts.getVoices();
         if (voices == null)
             return false;
-        for (TextToSpeech.Voice v : voices) {
+        for (Voice v : voices) {
             if (name.equals(v.getName())) {
                 tts.setVoice(v);
                 return true;

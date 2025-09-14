@@ -7,9 +7,12 @@
 using System;
 #pragma warning disable IDE0005 // Using ディレクティブは必要ありません。
 using System.Runtime.InteropServices;
+#pragma warning restore IDE0005 // Using ディレクティブは必要ありません。
 using System.Threading;
 using UnityEngine;
-#pragma warning restore IDE0005 // Using ディレクティブは必要ありません。
+#if UNITY_ANDROID && !UNITY_EDITOR
+using System.IO;
+#endif
 
 namespace TinyShrine.OSSpeech.TextToSpeech
 {
@@ -103,7 +106,7 @@ namespace TinyShrine.OSSpeech.TextToSpeech
                 return false;
             var rc = tts_speak(text, IntPtr.Zero, rate01, pitch, volume01, queue);
             if (rc != 0)
-                Debug.LogError($"[TtsService] tts_speak failed: {rc}");
+                Debug.LogError($"[TextToSpeechService] tts_speak failed: {rc}");
             return rc == 0;
         }
 
@@ -175,7 +178,7 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             var rc = tts_synthesize_pcm(text, IntPtr.Zero, rate01, pitch, volume01, out mem, out frames, out sr);
             if (rc != 0 || mem == IntPtr.Zero || frames <= 0 || sr <= 0)
             {
-                Debug.LogError($"[TtsService] tts_synthesize_pcm failed: {rc}");
+                Debug.LogError($"[TextToSpeechService] tts_synthesize_pcm failed: {rc}");
                 return null;
             }
 
@@ -194,20 +197,58 @@ namespace TinyShrine.OSSpeech.TextToSpeech
                 tts_free(mem);
             }
         }
+#elif UNITY_ANDROID && !UNITY_EDITOR
 
-#else
-        // ---- ここから iOS/mac 以外のスタブ実装 ------------------------------
-        public static void Init(SynchronizationContext? mainContext = null, string language = "ja-JP") =>
-            Debug.LogWarning("[TtsService] iOS/macOS 実機ビルドで有効になります（現在はスタブ）。");
+        static AndroidJavaClass bridge;
+        static AndroidJavaObject activity;
+
+        class CallbackProxy : AndroidJavaProxy
+        {
+            public CallbackProxy()
+                : base("jp.tinyshrine.osspeech.TextToSpeechBridge$Callback") { }
+
+            public void onEvent(int ev)
+            {
+                // iOS/mac のイベントに合わせる
+                switch (ev)
+                {
+                    case 0:
+                        OnStart?.Invoke();
+                        break;
+                    case 1:
+                        OnFinish?.Invoke();
+                        break;
+                    case 2:
+                        OnCancel?.Invoke();
+                        break;
+                    default:
+                        OnError?.Invoke();
+                        break;
+                }
+            }
+        }
+
+        public static void Init(SynchronizationContext? mainContext = null, string language = "ja-JP")
+        {
+            Debug.Log("[TextToSpeechService] Android TextToSpeech init");
+            using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+            activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+            bridge = new AndroidJavaClass("jp.tinyshrine.osspeech.TextToSpeechBridge");
+            Debug.Log("[TextToSpeechService] Android TextToSpeech init" + bridge);
+            bridge.CallStatic("init", activity, new CallbackProxy());
+            if (!string.IsNullOrEmpty(language))
+                SetLanguage(language);
+        }
 
         public static void SetLanguage(string lang)
         {
-            Debug.LogWarning("[TtsService] このプラットフォームではネイティブTTSは無効（スタブ）。");
+            bridge?.CallStatic("setLanguage", string.IsNullOrEmpty(lang) ? "ja-JP" : lang);
         }
 
+        /// <summary>Androidでは Voice#getName() を identifier とみなします。</summary>
         public static void SetVoiceId(string identifierOrNull)
         {
-            Debug.LogWarning("[TtsService] このプラットフォームではネイティブTTSは無効（スタブ）。");
+            bridge?.CallStatic("setVoiceId", identifierOrNull);
         }
 
         public static bool Speak(
@@ -218,13 +259,183 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             bool queue = false
         )
         {
-            Debug.LogWarning("[TtsService] このプラットフォームではネイティブTTSは無効（スタブ）。");
+            if (string.IsNullOrEmpty(text) || bridge == null)
+                return false;
+            var rc = bridge.CallStatic<int>(
+                "speak",
+                text, /*voiceOrLocale*/
+                null,
+                rate01,
+                pitch,
+                volume01,
+                queue
+            );
+            if (rc != 0)
+                Debug.LogError($"[TextToSpeechService] Android speak failed: {rc}");
+            return rc == 0;
+        }
+
+        public static void Stop() => bridge?.CallStatic("stop");
+
+        public static bool IsSpeaking => bridge != null && bridge.CallStatic<bool>("isSpeaking");
+
+        public static string ListVoicesJson()
+        {
+            return bridge?.CallStatic<string>("listVoicesJson");
+        }
+
+        /// <summary>
+        /// Androidは TextToSpeech の制約で、いったん WAV ファイルに合成してから読み込みます。
+        /// 返す AudioClip はモノラル（必要に応じて拡張可）。
+        /// </summary>
+        public static AudioClip SynthesizeToClip(
+            string text,
+            float rate01 = 1.0f,
+            float pitch = 1.0f,
+            float volume01 = 1.0f
+        )
+        {
+            if (string.IsNullOrEmpty(text) || bridge == null)
+                return null;
+            string path = bridge.CallStatic<string>(
+                "synthesizeToFile",
+                text, /*voiceOrLocale*/
+                null,
+                rate01,
+                pitch,
+                volume01,
+                activity
+            );
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            {
+                Debug.LogError("[TextToSpeechService] synthesizeToFile failed.");
+                return null;
+            }
+            try
+            {
+                return LoadWavAsClip(path);
+            }
+            finally
+            {
+                // 生成ファイルは不要なら削除
+                try
+                {
+                    File.Delete(path);
+                }
+                catch { }
+            }
+        }
+
+        // ---- WAV読み込み（16bit PCM または float32 PCM に対応） ----
+        static AudioClip LoadWavAsClip(string path)
+        {
+            using var fs = File.OpenRead(path);
+            using var br = new BinaryReader(fs);
+
+            // RIFF ヘッダ確認
+            if (new string(br.ReadChars(4)) != "RIFF")
+                throw new Exception("Not RIFF");
+            br.ReadInt32(); // file size
+            if (new string(br.ReadChars(4)) != "WAVE")
+                throw new Exception("Not WAVE");
+
+            // fmt チャンクを探す
+            int channels = 1,
+                sampleRate = 22050,
+                bitsPerSample = 16,
+                audioFormat = 1;
+            while (br.BaseStream.Position < br.BaseStream.Length)
+            {
+                string chunk = new string(br.ReadChars(4));
+                int size = br.ReadInt32();
+                long next = br.BaseStream.Position + size;
+
+                if (chunk == "fmt ")
+                {
+                    audioFormat = br.ReadInt16(); // 1=PCM, 3=IEEE float
+                    channels = br.ReadInt16();
+                    sampleRate = br.ReadInt32();
+                    br.ReadInt32(); // byteRate
+                    br.ReadInt16(); // blockAlign
+                    bitsPerSample = br.ReadInt16();
+                    // 余り読み飛ばし
+                }
+                else if (chunk == "data")
+                {
+                    byte[] data = br.ReadBytes(size);
+
+                    // PCM -> float[]
+                    float[] samples;
+                    if (audioFormat == 1 && bitsPerSample == 16)
+                    {
+                        int count = size / 2;
+                        samples = new float[count];
+                        for (int i = 0; i < count; i++)
+                        {
+                            short s = BitConverter.ToInt16(data, i * 2);
+                            samples[i] = s / 32768f;
+                        }
+                    }
+                    else if (audioFormat == 3 && bitsPerSample == 32)
+                    {
+                        int count = size / 4;
+                        samples = new float[count];
+                        Buffer.BlockCopy(data, 0, samples, 0, size);
+                    }
+                    else
+                    {
+                        throw new Exception($"Unsupported WAV format: fmt={audioFormat}, bps={bitsPerSample}");
+                    }
+
+                    // ステレオ→モノラル平均
+                    if (channels == 2)
+                    {
+                        int frames = samples.Length / 2;
+                        float[] mono = new float[frames];
+                        for (int f = 0; f < frames; f++)
+                            mono[f] = 0.5f * (samples[f * 2] + samples[f * 2 + 1]);
+                        samples = mono;
+                    }
+
+                    var clip = AudioClip.Create("tts", samples.Length, 1, sampleRate, false);
+                    clip.SetData(samples, 0);
+                    return clip;
+                }
+
+                br.BaseStream.Position = next;
+            }
+            throw new Exception("WAV data chunk not found");
+        }
+#else
+        // ---- ここから iOS/mac 以外のスタブ実装 ------------------------------
+        public static void Init(SynchronizationContext? mainContext = null, string language = "ja-JP") =>
+            Debug.LogWarning("[TextToSpeechService] iOS/macOS 実機ビルドで有効になります（現在はスタブ）。");
+
+        public static void SetLanguage(string lang)
+        {
+            Debug.LogWarning("[TextToSpeechService] このプラットフォームではネイティブTTSは無効（スタブ）。");
+        }
+
+        public static void SetVoiceId(string identifierOrNull)
+        {
+            Debug.LogWarning("[TextToSpeechService] このプラットフォームではネイティブTTSは無効（スタブ）。");
+        }
+
+        public static bool Speak(
+            string text,
+            float rate01 = 1.0f,
+            float pitch = 1.0f,
+            float volume01 = 1.0f,
+            bool queue = false
+        )
+        {
+            Debug.LogWarning("[TextToSpeechService] このプラットフォームではネイティブTTSは無効（スタブ）。");
             return false;
         }
 
         public static void Stop()
         {
-            Debug.LogWarning("[TtsService] このプラットフォームではネイティブTTSは無効（スタブ）。");
+            Debug.LogWarning("[TextToSpeechService] このプラットフォームではネイティブTTSは無効（スタブ）。");
         }
 
         public static bool IsSpeaking() => false;
@@ -238,7 +449,7 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             float volume01 = 1.0f
         )
         {
-            Debug.LogWarning("[TtsService] このプラットフォームではネイティブTTSは無効（スタブ）。");
+            Debug.LogWarning("[TextToSpeechService] このプラットフォームではネイティブTTSは無効（スタブ）。");
             return null;
         }
 #endif

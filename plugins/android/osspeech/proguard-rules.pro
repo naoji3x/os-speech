@@ -20,5 +20,5 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--keep class jp.tinyshrine.osspeech.TextToSpeech { *; }
--keep interface jp.tinyshrine.osspeech.TextToSpeech$Callback
+-keep class jp.tinyshrine.osspeech.TextToSpeechBridge { *; }
+-keep interface jp.tinyshrine.osspeech.TextToSpeechBridge$Callback

@@ -114,6 +114,7 @@
       "dylib",
       "eslintcache",
       "GGUF",
+      "gradlew",
       "idxs",
       "inputactions",
       "lefthook",
