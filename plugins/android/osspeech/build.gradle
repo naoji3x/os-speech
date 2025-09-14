@@ -1,0 +1,40 @@
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath "com.android.tools.build:gradle:8.5.2"
+  }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+  namespace 'jp.tinyshrine.osspeech'
+  compileSdk 34
+
+  defaultConfig {
+    minSdk 21
+    consumerProguardFiles 'consumer-rules.pro'
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  buildTypes {
+    release { minifyEnabled false }
+    debug   { minifyEnabled false }
+  }
+}
+
+repositories {
+  google()
+  mavenCentral()
+}
+
+
+dependencies { }
+

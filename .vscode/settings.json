@@ -107,6 +107,7 @@
     "omnisharp.enableRoslynAnalyzers": true,
     "dotnet.format.enable": true,
     "cSpell.words": [
+      "buildscript",
       "Cdecl",
       "Cinemachine",
       "DEVLOG",

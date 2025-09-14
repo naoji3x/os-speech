@@ -1,0 +1,2 @@
+-keep class jp.tinyshrine.osspeech.TextToSpeech { *; }
+-keep interface jp.tinyshrine.osspeech.TextToSpeech$Callback
