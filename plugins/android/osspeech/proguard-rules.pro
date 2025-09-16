@@ -22,3 +22,5 @@
 
 -keep class jp.tinyshrine.osspeech.TextToSpeechBridge { *; }
 -keep interface jp.tinyshrine.osspeech.TextToSpeechBridge$Callback
+-keep class jp.tinyshrine.osspeech.SpeechToTextBridge { *; }
+-keep interface jp.tinyshrine.osspeech.SpeechToTextBridge$Callback
