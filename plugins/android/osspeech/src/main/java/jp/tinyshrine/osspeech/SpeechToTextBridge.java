@@ -10,7 +10,6 @@ import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 
 import java.util.ArrayList;
-import java.util.Locale;
 
 public class SpeechToTextBridge {
 

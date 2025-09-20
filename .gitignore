@@ -137,12 +137,6 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 
-# android
-plugins/android/**/.gradle/
-plugins/android/**/build/
-plugins/android/**/.idea/
-plugins/android/**/*.iml
-
 # iOS/mac
 plugins/ios/**/DerivedData/
 plugins/**/build/

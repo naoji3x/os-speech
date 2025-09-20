@@ -62,7 +62,13 @@ public class TextToSpeechBridge {
             }
 
             @Override
+            @Deprecated
             public void onError(String utteranceId) {
+                onError(utteranceId, TextToSpeech.ERROR);
+            }
+
+            @Override
+            public void onError(String utteranceId, int errorCode) {
                 CountDownLatch l = waitMap.remove(utteranceId);
                 if (l != null)
                     l.countDown();

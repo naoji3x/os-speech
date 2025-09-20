@@ -1,39 +1,83 @@
-buildscript {
-  repositories {
-    google()
-    mavenCentral()
-  }
-  dependencies {
-    classpath "com.android.tools.build:gradle:8.5.2"
-  }
+plugins {
+    id "com.android.library"
+    id "eclipse"
 }
-
-apply plugin: 'com.android.library'
 
 android {
-  namespace 'jp.tinyshrine.osspeech'
-  compileSdk 34
+    namespace 'jp.tinyshrine.osspeech'
+    compileSdk 34
 
-  defaultConfig {
-    minSdk 21
-    consumerProguardFiles 'consumer-rules.pro'
-  }
+    defaultConfig {
+        minSdk 21
+        consumerProguardFiles 'consumer-rules.pro'
+    }
 
-  compileOptions {
-    sourceCompatibility JavaVersion.VERSION_17
-    targetCompatibility JavaVersion.VERSION_17
-  }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 
-  buildTypes {
-    release { minifyEnabled false }
-    debug   { minifyEnabled false }
-  }
+    buildTypes {
+        release { minifyEnabled false }
+        debug   { minifyEnabled false }
+    }
+
+    lint { abortOnError false }
 }
 
-repositories {
-  google()
-  mavenCentral()
+/**
+ * 生成した AAR を Unity へコピー（任意）
+ * 例:
+ *   ./gradlew assembleRelease copyAarToUnity \
+ *     -PunityPluginDir=../YourUnity/Assets/Plugins/Android
+ */
+def unityPluginDir = (project.findProperty("unityPluginDir") ?: "../../../Assets/Plugins/Android")
+tasks.register("copyAarToUnity", Copy) {
+    dependsOn("assembleRelease")
+    from("$buildDir/outputs/aar")
+    include("osspeech-release.aar")
+    into(file(unityPluginDir))
 }
 
-dependencies { }
+dependencies {
+    // 必要な依存があればここに追加
+}
+
+eclipse {
+    classpath {
+        file {
+            // .classpath を直接書き換える（型インポート不要）
+            withXml { xml ->
+                def node = xml.asNode()
+                def entries = node.'classpathentry'
+
+                // 1) src/main/java を Source として確実に追加
+                def hasSrc = entries.find { it.@kind == 'src' && it.@path == 'src/main/java' }
+                if (!hasSrc) {
+                    node.appendNode('classpathentry', [kind: 'src', path: 'src/main/java'])
+                }
+
+                // 2) Android の android.jar（bootClasspath）を追加
+                //    ※ compileSdk に対応した SDK が local.properties の sdk.dir 配下にインストールされていること
+                android.bootClasspath.each { jarPath ->
+                    def hasLib = entries.find { it.@kind == 'lib' && it.@path == jarPath }
+                    if (!hasLib) {
+                        node.appendNode('classpathentry', [kind: 'lib', path: jarPath])
+                    }
+                }
+
+                // 3) 出力先が無ければ追加
+                def hasOut = entries.find { it.@kind == 'output' }
+                if (!hasOut) {
+                    node.appendNode('classpathentry', [kind: 'output', path: 'bin/default'])
+                }
+            }
+        }
+    }
+}
+
+// すべての JavaCompile に -Xlint を付与（警告の可視化）
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ['-Xlint:deprecation']
+}
 
