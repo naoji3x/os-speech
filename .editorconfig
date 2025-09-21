@@ -77,8 +77,8 @@ dotnet_diagnostic.RCS*.severity = warning
 # ─────────────────────────────────────────────────────────────
 # .NET 公式（CA18xx/CA183x/CA184x あたり）
 dotnet_diagnostic.CA1802.severity = error   # const にできるフィールド
-dotnet_diagnostic.CA1812.severity = error   # 生成さ※れない内部型の削除/可視化
-dotnet_diagnostic.CA1815.severity = error   # 値型のE※quals/GetHashCode 実装
+dotnet_diagnostic.CA1812.severity = error   # 生成されない内部型の削除/可視化
+dotnet_diagnostic.CA1815.severity = error   # 値型のEquals/GetHashCode 実装
 dotnet_diagnostic.CA1820.severity = error   # 文字列と空文字の比較
 dotnet_diagnostic.CA1822.severity = none    # メンバーを static は無効化
 dotnet_diagnostic.CA1826.severity = error   # Any() vs Count()
@@ -148,4 +148,12 @@ dotnet_analyzer_diagnostic.severity = none
 [Temp/**]
 dotnet_analyzer_diagnostic.severity = none
 
+# ─────────────────────────────────────────────────────────────
+# Java files - Google Java Style
+# ─────────────────────────────────────────────────────────────
+[*.java]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+trim_trailing_whitespace = true
 

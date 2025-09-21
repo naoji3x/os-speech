@@ -20,6 +20,7 @@
     "release:tag": "node scripts/release_tag.mjs",
     "test:dotnet": "dotnet test --nologo vroid-game-template.sln",
     "build:dotnet": "dotnet build --nologo -c Release vroid-game-template.sln",
+    "build:android:plugins": "(cd ./plugins/android/osspeech && ./gradlew assembleRelease copyAarToUnity)",
     "dotnet:restore": "dotnet tool restore",
     "format:cs": "npm run dotnet:restore && dotnet tool run csharpier format ./Assets/TinyShrine ./Assets/Scripts",
     "format:cs:check": "npm run dotnet:restore && dotnet tool run csharpier check ./Assets/TinyShrine ./Assets/Scripts",

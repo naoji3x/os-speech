@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<profiles version="21">
+  <profile kind="CodeFormatterProfile" name="VSCode" version="21">
+    <!-- インデント: スペース4 -->
+    <setting id="org.eclipse.jdt.core.formatter.tabulation.char" value="space" />
+    <setting id="org.eclipse.jdt.core.formatter.tabulation.size" value="4" />
+    <setting id="org.eclipse.jdt.core.formatter.indentation.size" value="4" />
+    <!-- 1行長 -->
+    <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="120" />
+    <!-- ★重要: 1行if文でも中括弧を強制★ -->
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_if_on_one_line" value="false" />
+    <setting id="org.eclipse.jdt.core.formatter.keep_then_statement_on_same_line" value="false" />
+    <setting id="org.eclipse.jdt.core.formatter.keep_else_statement_on_same_line" value="false" />
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_for_body_on_same_line" value="false" />
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_while_body_on_same_line" value="false" />
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_do_while_body_on_same_line" value="false" />
+    <!-- 中括弧位置: Google Style（同じ行） -->
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_block" value="end_of_line" />
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_method_declaration" value="end_of_line" />
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_type_declaration" value="end_of_line" />
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_constructor_declaration" value="end_of_line" />
+    <!-- Google Style: else if は同じ行 -->
+    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_before_else_in_if_statement" value="do not insert" />
+    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_before_catch_in_try_statement" value="do not insert" />
+    <setting
+      id="org.eclipse.jdt.core.formatter.insert_new_line_before_finally_in_try_statement"
+      value="do not insert"
+    />
+  </profile>
+</profiles>

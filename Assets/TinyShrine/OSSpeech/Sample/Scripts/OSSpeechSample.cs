@@ -45,15 +45,24 @@ namespace TinyShrine.OSSpeech.Sample
             TextToSpeechService.Speak(this.text);
         }
 
+        private void SetText(string text) => field.text = text;
+
         private void Awake()
         {
             Debug.Log("OSSpeechSample Awake");
             // メインスレッドの SynchronizationContext を渡す（ここがポイント）
             SpeechToTextService.Init(locale: "ja-JP", mainContext: System.Threading.SynchronizationContext.Current);
-            SpeechToTextService.OnPartial += s => field.text = s;
-            SpeechToTextService.OnFinal += s => field.text = s;
+            SpeechToTextService.OnPartial += SetText;
+            SpeechToTextService.OnFinal += SetText;
 
             TextToSpeechService.Init(System.Threading.SynchronizationContext.Current, language: "ja-JP");
+        }
+
+        private void OnDestroy()
+        {
+            SpeechToTextService.OnPartial -= SetText;
+            SpeechToTextService.OnFinal -= SetText;
+            SpeechToTextService.Stop();
         }
     }
 }

@@ -161,7 +161,9 @@ namespace TinyShrine.OSSpeech.SpeechToText
         public static void SetLocale(string locale)
         {
             if (bridge == null)
+            {
                 return;
+            }
             bridge.CallStatic("setLanguage", string.IsNullOrEmpty(locale) ? "ja-JP" : locale);
         }
 
@@ -305,10 +307,18 @@ namespace TinyShrine.OSSpeech.SpeechToText
             }
 
             // Java: onPartial(String)
-            public void onPartial(string text) => Post(() => OnPartial(text ?? string.Empty));
+            public void onPartial(string text)
+            {
+                Debug.Log("onPartial: " + text);
+                Post(() => OnPartial(text ?? string.Empty));
+            }
 
             // Java: onFinal(String)
-            public void onFinal(string text) => Post(() => OnFinal(text ?? string.Empty));
+            public void onFinal(string text)
+            {
+                Debug.Log("onFinal: " + text);
+                Post(() => OnFinal(text ?? string.Empty));
+            }
 
             // Java: onReady/onBegin/onEnd/onError はログだけ（iOS側APIに無いのでイベントには出さない）
             public void onReady() => Debug.Log("[STT] Ready");

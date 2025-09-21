@@ -1,11 +1,5 @@
 package jp.tinyshrine.osspeech;
 
-import android.content.Context;
-import android.os.Bundle;
-import android.speech.tts.TextToSpeech;
-import android.speech.tts.Voice;
-import android.speech.tts.UtteranceProgressListener;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Locale;
@@ -16,6 +10,12 @@ import java.util.concurrent.CountDownLatch;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import android.content.Context;
+import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import android.speech.tts.Voice;
 
 public class TextToSpeechBridge {
 
@@ -34,8 +34,9 @@ public class TextToSpeechBridge {
 
     public static void init(Context ctx, Callback callback) {
         cb = callback;
-        if (tts != null)
+        if (tts != null) {
             return;
+        }
 
         tts = new TextToSpeech(ctx.getApplicationContext(), status -> {
             ready = (status == TextToSpeech.SUCCESS);
@@ -48,17 +49,20 @@ public class TextToSpeechBridge {
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             @Override
             public void onStart(String utteranceId) {
-                if (cb != null)
+                if (cb != null) {
                     cb.onEvent(0);
+                }
             }
 
             @Override
             public void onDone(String utteranceId) {
                 CountDownLatch l = waitMap.remove(utteranceId);
-                if (l != null)
+                if (l != null) {
                     l.countDown();
-                if (cb != null)
+                }
+                if (cb != null) {
                     cb.onEvent(1);
+                }
             }
 
             @Override
@@ -70,16 +74,19 @@ public class TextToSpeechBridge {
             @Override
             public void onError(String utteranceId, int errorCode) {
                 CountDownLatch l = waitMap.remove(utteranceId);
-                if (l != null)
+                if (l != null) {
                     l.countDown();
-                if (cb != null)
+                }
+                if (cb != null) {
                     cb.onEvent(5);
+                }
             }
 
             @Override
             public void onStop(String utteranceId, boolean interrupted) {
-                if (cb != null)
+                if (cb != null) {
                     cb.onEvent(2);
+                }
             }
         });
     }
@@ -87,19 +94,23 @@ public class TextToSpeechBridge {
     public static void setLanguage(String langTag) {
         currentLocale = (langTag == null || langTag.isEmpty()) ? Locale.forLanguageTag("ja-JP")
                 : Locale.forLanguageTag(langTag);
-        if (tts != null)
+        if (tts != null) {
             tts.setLanguage(currentLocale);
+        }
     }
 
     public static void setVoiceId(String idOrNull) {
         currentVoiceId = idOrNull;
-        if (tts == null)
+        if (tts == null) {
             return;
-        if (idOrNull == null || idOrNull.isEmpty())
+        }
+        if (idOrNull == null || idOrNull.isEmpty()) {
             return;
+        }
         Set<Voice> voices = tts.getVoices();
-        if (voices == null)
+        if (voices == null) {
             return;
+        }
         for (Voice v : voices) {
             if (idOrNull.equals(v.getName())) { // Voice#getName() を ID とみなす
                 tts.setVoice(v);
@@ -115,14 +126,16 @@ public class TextToSpeechBridge {
     }
 
     public static void stop() {
-        if (tts != null)
+        if (tts != null) {
             tts.stop();
+        }
     }
 
     public static int speak(String text, String voiceOrLocale, float rate01, float pitch, float volume01,
             boolean queue) {
-        if (tts == null || !ready || text == null)
+        if (tts == null || !ready || text == null) {
             return -1;
+        }
 
         // 音量は Bundle の KEY_PARAM_VOLUME（0..1）
         Bundle params = new Bundle();
@@ -175,8 +188,9 @@ public class TextToSpeechBridge {
     // PCMファイル（WAVを想定）を同期生成してパスを返す（null=失敗）
     public static String synthesizeToFile(String text, String voiceOrLocale, float rate01, float pitch, float volume01,
             Context ctx) {
-        if (tts == null || !ready || text == null)
+        if (tts == null || !ready || text == null) {
             return null;
+        }
 
         // 一時ファイル
         File out;
@@ -223,11 +237,13 @@ public class TextToSpeechBridge {
 
     // ---------- helpers ----------
     private static boolean applyVoiceByName(String name) {
-        if (tts == null)
+        if (tts == null) {
             return false;
+        }
         Set<Voice> voices = tts.getVoices();
-        if (voices == null)
+        if (voices == null) {
             return false;
+        }
         for (Voice v : voices) {
             if (name.equals(v.getName())) {
                 tts.setVoice(v);

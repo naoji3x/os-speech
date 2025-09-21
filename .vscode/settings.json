@@ -136,9 +136,11 @@
     "Punity",
     "quotepath",
     "Qwen",
+    "rmsd",
     "Rokoko",
     "Roslynator",
     "softprops",
+    "stackalloc",
     "strdup",
     "stylecop",
     "SYSLIB",
@@ -149,5 +151,18 @@
     "vroid",
     "xcodeproj",
     "Xlint"
-  ]
+  ],
+  "[java]": {
+    "editor.defaultFormatter": "redhat.java",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  "java.format.enabled": true,
+  "java.format.onType.enabled": true,
+  "java.format.settings.url": "${workspaceFolder}/.vscode/java-formatter.xml",
+  "java.checkstyle.configuration": "${workspaceFolder}/.vscode/checkstyle.xml",
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.format.settings.profile": "VSCode"
 }

@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN" "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<module name="Checker">
+  <!-- Googleベース -->
+  <module name="TreeWalker">
+    <!-- Google 既定ルール -->
+    <module name="OuterTypeFilename" />
+    <module name="PackageDeclaration" />
+    <module name="IllegalTokenText" />
+    <module name="AvoidStarImport" />
+    <module name="UnusedImports" />
+    <module name="MethodParamPad" />
+    <module name="ParenPad" />
+    <module name="OperatorWrap" />
+    <module name="WhitespaceAfter" />
+    <module name="WhitespaceAround" />
+    <module name="NoWhitespaceBefore" />
+    <module name="EmptyBlock" />
+    <module name="ModifierOrder" />
+    <module name="RedundantModifier" />
+    <module name="AnnotationLocation" />
+    <module name="TypeName" />
+    <module name="MethodName" />
+    <module name="ParameterName" />
+    <module name="LocalVariableName" />
+    <module name="MemberName" />
+    <module name="ConstantName">
+      <property name="format" value="^[A-Z][A-Z0-9_]*$" />
+      <property name="applyToPrivate" value="false" />
+    </module>
+    <module name="Indentation">
+      <!-- Google既定は2。4に上書き -->
+      <property name="basicOffset" value="4" />
+      <property name="braceAdjustment" value="0" />
+      <property name="caseIndent" value="4" />
+      <property name="throwsIndent" value="4" />
+      <property name="lineWrappingIndentation" value="4" />
+    </module>
+    <!-- 1行if なども含め 常に {} 必須 -->
+    <module name="NeedBraces">
+      <property name="tokens" value="LITERAL_IF, LITERAL_ELSE, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO" />
+      <property name="allowSingleLineStatement" value="false" />
+    </module>
+  </module>
+  <!-- Google推奨の長さなど（必要最低限） -->
+  <module name="LineLength">
+    <property name="max" value="120" />
+    <property name="ignorePattern" value="^package|^import|a href|href|http://|https://" />
+  </module>
+</module>

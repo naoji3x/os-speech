@@ -1,5 +1,7 @@
 package jp.tinyshrine.osspeech;
 
+import java.util.ArrayList;
+
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -8,8 +10,7 @@ import android.os.Looper;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
-
-import java.util.ArrayList;
+import android.util.Log;
 
 public class SpeechToTextBridge {
 
@@ -30,23 +31,24 @@ public class SpeechToTextBridge {
 
     private static SpeechRecognizer recognizer;
     private static Intent intent;
-    private static Callback cb;
-    private static Context app;
+    private static Callback callback;
+    private static Context context;
     private static final Handler main = new Handler(Looper.getMainLooper());
 
     private static String languageTag = "ja-JP";
     private static boolean partial = true;
     private static boolean preferOffline = false;
     private static volatile boolean listening = false;
+    private static volatile boolean keepAlive = false; // ★ stop まで連続入力するか
 
     // ---- public API ----
 
-    public static void init(Context ctx, Callback callback) {
-        app = ctx.getApplicationContext();
-        cb = callback;
+    public static void init(Context ctx, Callback cb) {
+        context = ctx.getApplicationContext();
+        SpeechToTextBridge.callback = cb;
         main.post(() -> {
             destroyInternal();
-            recognizer = SpeechRecognizer.createSpeechRecognizer(app);
+            recognizer = SpeechRecognizer.createSpeechRecognizer(context);
             recognizer.setRecognitionListener(listener);
             buildIntent();
         });
@@ -57,7 +59,11 @@ public class SpeechToTextBridge {
     }
 
     public static void setLanguage(String langTag) {
-        languageTag = (langTag == null || langTag.isEmpty()) ? "ja-JP" : langTag;
+        if (langTag == null) {
+            langTag = "ja-JP";
+        }
+
+        languageTag = (langTag.isEmpty()) ? "ja-JP" : langTag;
         main.post(SpeechToTextBridge::buildIntent);
     }
 
@@ -77,50 +83,50 @@ public class SpeechToTextBridge {
 
     public static void start() {
         if (recognizer == null) {
-            if (cb != null)
-                cb.onError(-1, "Recognizer not initialized");
+            if (callback != null) {
+                callback.onError(-1, "Recognizer not initialized");
+            }
             return;
         }
         main.post(() -> {
-            try {
-                listening = true;
-                recognizer.startListening(intent);
-            } catch (Exception e) {
-                listening = false;
-                if (cb != null)
-                    cb.onError(-2, e.getMessage());
-                if (cb != null)
-                    cb.onEnd();
-            }
+            keepAlive = true; // 連続ON
+            startListeningSafely();
         });
     }
 
     public static void stop() {
-        if (recognizer == null)
+        if (recognizer == null || !listening) {
             return;
+        }
         main.post(() -> {
+            keepAlive = false; // 連続OFF
             try {
                 recognizer.stopListening();
             } catch (Exception e) {
-                if (cb != null)
-                    cb.onError(-3, e.getMessage());
+                if (callback != null) {
+                    callback.onError(-3, e.getMessage());
+                }
             }
         });
     }
 
     public static void cancel() {
-        if (recognizer == null)
+        if (recognizer == null) {
             return;
+        }
         main.post(() -> {
+            keepAlive = false; // 連続OFF
             try {
                 recognizer.cancel();
             } catch (Exception e) {
-                if (cb != null)
-                    cb.onError(-4, e.getMessage());
+                if (callback != null) {
+                    callback.onError(-4, e.getMessage());
+                }
             } finally {
                 listening = false;
-                if (cb != null)
-                    cb.onEnd();
+                if (callback != null) {
+                    callback.onEnd();
+                }
             }
         });
     }
@@ -133,15 +139,21 @@ public class SpeechToTextBridge {
 
     private static void buildIntent() {
         intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag);
         intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, partial);
         intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, preferOffline);
         intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+
+        // 任意: 区切りのしきい値（必要に応じて調整）
+        intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 800);
+        intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 800);
+        intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 2000);
     }
 
     private static void destroyInternal() {
+        keepAlive = false;
+        listening = false;
         if (recognizer != null) {
             try {
                 recognizer.destroy();
@@ -149,20 +161,62 @@ public class SpeechToTextBridge {
             }
             recognizer = null;
         }
-        listening = false;
+    }
+
+    private static void startListeningSafely() {
+        try {
+            listening = true;
+            recognizer.startListening(intent);
+        } catch (Exception e) {
+            listening = false;
+            if (callback != null) {
+                callback.onError(-2, e.getMessage());
+                callback.onEnd();
+            }
+        }
+    }
+
+    private static void scheduleRestart(long delayMs) {
+        if (!keepAlive || recognizer == null) {
+            return;
+        }
+        main.postDelayed(() -> {
+            if (keepAlive && recognizer != null) {
+                startListeningSafely();
+            }
+        }, delayMs);
+    }
+
+    private static boolean shouldRestartOnError(int code) {
+        // 再試行して良いエラー
+        switch (code) {
+            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
+            case SpeechRecognizer.ERROR_NO_MATCH:
+            case SpeechRecognizer.ERROR_CLIENT:
+            case SpeechRecognizer.ERROR_NETWORK:
+            case SpeechRecognizer.ERROR_SERVER:
+            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
+                return true;
+            case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
+            case SpeechRecognizer.ERROR_AUDIO:
+            default:
+                return false;
+        }
     }
 
     private static final RecognitionListener listener = new RecognitionListener() {
         @Override
         public void onReadyForSpeech(Bundle params) {
-            if (cb != null)
-                cb.onReady();
+            if (callback != null) {
+                callback.onReady();
+            }
         }
 
         @Override
         public void onBeginningOfSpeech() {
-            if (cb != null)
-                cb.onBegin();
+            if (callback != null) {
+                callback.onBegin();
+            }
         }
 
         @Override
@@ -175,35 +229,51 @@ public class SpeechToTextBridge {
 
         @Override
         public void onEndOfSpeech() {
-            /* 結果 or エラーを待つ */ }
+            // 結果 or エラーを待つ
+        }
 
         @Override
         public void onError(int error) {
             listening = false;
-            if (cb != null)
-                cb.onError(error, mapError(error));
-            if (cb != null)
-                cb.onEnd();
+            String errorName = mapError(error);
+
+            if (keepAlive && shouldRestartOnError(error)) {
+                // 自動復旧可能なエラー：内部処理のみ、Unity側には通知しない
+                Log.d("SpeechToText", "Auto-recovering from error: " + errorName + " (" + error + ")");
+                scheduleRestart(250);
+            } else {
+                // 重大エラー：Unity側に通知して完全停止
+                Log.e("SpeechToText", "Critical error, stopping: " + errorName + " (" + error + ")");
+                keepAlive = false;
+                if (callback != null) {
+                    callback.onError(error, errorName);
+                    callback.onEnd();
+                }
+            }
         }
 
         @Override
         public void onResults(Bundle results) {
             listening = false;
             String text = first(results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION));
-            if (cb != null)
-                cb.onFinal(text == null ? "" : text);
-            if (cb != null)
-                cb.onEnd();
+            if (callback != null) {
+                callback.onFinal(text == null ? "" : text);
+                callback.onEnd();
+            }
+            if (keepAlive) {
+                scheduleRestart(150);
+            }
         }
 
         @Override
         public void onPartialResults(Bundle partialResults) {
-            if (!partial || cb == null)
+            if (!partial || callback == null) {
                 return;
-            String text = first(partialResults.getStringArrayList(
-                    SpeechRecognizer.RESULTS_RECOGNITION));
-            if (text != null)
-                cb.onPartial(text);
+            }
+            String text = first(partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION));
+            if (text != null) {
+                callback.onPartial(text);
+            }
         }
 
         @Override
