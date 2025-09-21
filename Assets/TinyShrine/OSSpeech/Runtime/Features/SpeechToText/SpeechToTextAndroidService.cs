@@ -7,14 +7,12 @@ namespace TinyShrine.OSSpeech.SpeechToText
 {
     public static class SpeechToTextAndroidService
     {
+        private static readonly StringBuilder TextBuffer = new();
         private static SpeechToTextAndroidBridge? androidBridge;
-        private static SynchronizationContext? mainContext;
         private static string currentLocale = "ja-JP";
         private static bool isInitialized;
         private static bool isListening;
         private static bool isStopping;
-
-        private static StringBuilder textBuffer = new StringBuilder();
 
         /// <summary>途中経過（部分結果）。UIに逐次表示したいときに。</summary>
         public static event Action<string> OnPartial = static text => { };
@@ -46,10 +44,9 @@ namespace TinyShrine.OSSpeech.SpeechToText
             try
             {
                 currentLocale = locale;
-                SpeechToTextAndroidService.mainContext = mainContext ?? SynchronizationContext.Current;
 
                 // Android Bridge を初期化
-                androidBridge = new SpeechToTextAndroidBridge();
+                androidBridge = new SpeechToTextAndroidBridge(mainContext ?? SynchronizationContext.Current);
 
                 // 音声認識が利用可能かチェック
                 if (!androidBridge.IsRecognitionAvailable())
@@ -100,7 +97,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 return false;
             }
 
-            textBuffer.Clear();
+            TextBuffer.Clear();
             try
             {
                 androidBridge?.StartListening();
@@ -239,8 +236,8 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
             androidBridge.OnResults += (resultText) =>
             {
-                textBuffer.Append(resultText + " 。");
-                var text = textBuffer.ToString();
+                TextBuffer.Append(resultText + " 。");
+                var text = TextBuffer.ToString();
                 if (isListening)
                 {
                     Debug.Log("[SpeechToTextAndroidService] Received results while still listening, ignoring.");
@@ -265,7 +262,8 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
             androidBridge.OnPartialResults += (partialText) =>
             {
-                OnPartial?.Invoke(partialText);
+                var textSoFar = TextBuffer.ToString() ?? string.Empty;
+                OnPartial?.Invoke(textSoFar + partialText);
                 Debug.Log($"[SpeechToTextAndroidService] Partial result: {partialText}");
             };
 

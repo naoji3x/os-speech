@@ -1,4 +1,3 @@
-using System.Linq;
 using TinyShrine.OSSpeech.SpeechToText;
 // using TinyShrine.OSSpeech.TextToSpeech;
 using TMPro;
@@ -47,7 +46,12 @@ namespace TinyShrine.OSSpeech.Sample
             // TextToSpeechService.Speak(this.text);
         }
 
-        private void OnPartial(string text) => Debug.Log($"Partial result: {text}");
+        private void OnPartial(string text)
+        {
+            this.text = text;
+            field.text = this.text;
+            Debug.Log($"Partial result: {text}");
+        }
 
         private void OnFinal(string text)
         {
