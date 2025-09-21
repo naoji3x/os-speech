@@ -1,6 +1,7 @@
 #if UNITY_ANDROID || UNITY_EDITOR
 
 using System;
+using System.Threading;
 using UnityEngine;
 
 namespace TinyShrine.OSSpeech.SpeechToText
@@ -27,16 +28,17 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
         private readonly AndroidJavaObject unityActivity;
         private readonly AndroidJavaClass bridgeClass;
+        private readonly SynchronizationContext? mainContext;
         private bool disposed;
 
-        public SpeechToTextAndroidBridge()
+        public SpeechToTextAndroidBridge(SynchronizationContext? mainContext = null)
             : base(CallbackInterface)
         {
+            this.mainContext = mainContext ?? SynchronizationContext.Current;
+
             // Unity Activity を取得
-            using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
-            {
-                unityActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
-            }
+            using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+            unityActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
 
             // Bridge クラスを取得
             bridgeClass = new AndroidJavaClass(AndroidBridgeClass);
@@ -138,6 +140,42 @@ namespace TinyShrine.OSSpeech.SpeechToText
         }
 
         /// <summary>
+        /// Bundle から全ての認識結果を取得
+        /// </summary>
+        public string[] GetAllResults(AndroidJavaObject results)
+        {
+            if (results == null)
+            {
+                return Array.Empty<string>();
+            }
+
+            try
+            {
+                AndroidJavaObject arrayList = bridgeClass.CallStatic<AndroidJavaObject>("getAllResults", results);
+                if (arrayList == null)
+                {
+                    return Array.Empty<string>();
+                }
+
+                int size = arrayList.Call<int>("size");
+                string[] resultArray = new string[size];
+
+                for (int i = 0; i < size; i++)
+                {
+                    string item = arrayList.Call<string>("get", i);
+                    resultArray[i] = item ?? string.Empty;
+                }
+
+                return resultArray;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[SpeechToTextAndroidBridge] Failed to get all results: {e.Message}");
+                return Array.Empty<string>();
+            }
+        }
+
+        /// <summary>
         /// リソース解放
         /// </summary>
         public void Destroy()
@@ -154,7 +192,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
         /// </summary>
         public void onReadyForSpeech(AndroidJavaObject parameters)
         {
-            OnReadyForSpeech?.Invoke();
+            InvokeOnMainThread(() => OnReadyForSpeech?.Invoke());
         }
 
         /// <summary>
@@ -162,7 +200,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
         /// </summary>
         public void onBeginningOfSpeech()
         {
-            OnBeginningOfSpeech?.Invoke();
+            InvokeOnMainThread(() => OnBeginningOfSpeech?.Invoke());
         }
 
         /// <summary>
@@ -170,7 +208,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
         /// </summary>
         public void onRmsChanged(float rmsdB)
         {
-            OnRmsChanged?.Invoke(rmsdB);
+            InvokeOnMainThread(() => OnRmsChanged?.Invoke(rmsdB));
         }
 
         /// <summary>
@@ -186,7 +224,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
         /// </summary>
         public void onEndOfSpeech()
         {
-            OnEndOfSpeech?.Invoke();
+            InvokeOnMainThread(() => OnEndOfSpeech?.Invoke());
         }
 
         /// <summary>
@@ -194,7 +232,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
         /// </summary>
         public void onError(int error)
         {
-            OnError?.Invoke(error);
+            InvokeOnMainThread(() => OnError?.Invoke(error));
         }
 
         /// <summary>
@@ -203,7 +241,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
         public void onResults(AndroidJavaObject results)
         {
             string resultText = GetFirstResult(results);
-            OnResults?.Invoke(resultText);
+            InvokeOnMainThread(() => OnResults?.Invoke(resultText));
         }
 
         /// <summary>
@@ -212,7 +250,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
         public void onPartialResults(AndroidJavaObject partialResults)
         {
             string resultText = GetFirstResult(partialResults);
-            OnPartialResults?.Invoke(resultText);
+            InvokeOnMainThread(() => OnPartialResults?.Invoke(resultText));
         }
 
         /// <summary>
@@ -232,6 +270,17 @@ namespace TinyShrine.OSSpeech.SpeechToText
         }
 
         // ---- Utility Methods ----
+        private void InvokeOnMainThread(Action action)
+        {
+            if (mainContext != null)
+            {
+                mainContext.Post(_ => action(), null);
+            }
+            else
+            {
+                action();
+            }
+        }
 
         /// <summary>
         /// Bundle から最初の認識結果を取得
@@ -268,8 +317,6 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 }
 
                 bridgeClass.Dispose();
-                unityActivity.Dispose();
-
                 disposed = true;
             }
         }

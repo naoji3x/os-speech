@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -36,6 +38,7 @@ public class SpeechToTextBridge {
     private static Intent intent;
     private static Callback callback;
     private static Context context;
+    private static final Handler main = new Handler(Looper.getMainLooper());
 
     private static String languageTag = "ja-JP";
     private static boolean partial = true;
@@ -43,17 +46,21 @@ public class SpeechToTextBridge {
 
     // ---- public API ----
 
-    public static void init(Context ctx, Callback cb) {
+    public static void init(Context ctx, Callback callback) {
         context = ctx.getApplicationContext();
-        callback = cb;
+        SpeechToTextBridge.callback = callback;
 
         if (recognizer != null) {
             recognizer.destroy();
         }
 
-        recognizer = SpeechRecognizer.createSpeechRecognizer(context);
-        recognizer.setRecognitionListener(listener);
-        buildIntent();
+        main.post(() -> {
+            destroyInternal();
+            recognizer = SpeechRecognizer.createSpeechRecognizer(context);
+            recognizer.setRecognitionListener(listener);
+            buildIntent();
+        });
+
     }
 
     public static boolean isRecognitionAvailable(Context ctx) {
@@ -66,43 +73,74 @@ public class SpeechToTextBridge {
         } else {
             languageTag = langTag;
         }
-        buildIntent();
+        main.post(() -> buildIntent());
     }
 
     public static void setPreferOffline(boolean offline) {
         preferOffline = offline;
-        buildIntent();
+        main.post(() -> buildIntent());
     }
 
     public static void setPartialResults(boolean enable) {
         partial = enable;
-        buildIntent();
+        main.post(() -> buildIntent());
     }
 
     public static void startListening() {
         if (recognizer != null && intent != null) {
-            recognizer.startListening(intent);
+            main.post(() -> {
+                try {
+                    recognizer.startListening(intent);
+                } catch (Exception e) {
+                    if (callback != null) {
+                        callback.onError(SpeechRecognizer.ERROR_CLIENT);
+                    }
+                }
+            });
         }
     }
 
     public static void stopListening() {
         if (recognizer != null) {
-            recognizer.stopListening();
+            main.post(() -> {
+                try {
+                    recognizer.stopListening();
+                } catch (Exception e) {
+                    if (callback != null) {
+                        callback.onError(SpeechRecognizer.ERROR_CLIENT);
+                    }
+                }
+            });
         }
     }
 
     public static void cancel() {
         if (recognizer != null) {
-            recognizer.cancel();
+            main.post(() -> {
+                try {
+                    recognizer.cancel();
+                } catch (Exception e) {
+                    if (callback != null) {
+                        callback.onError(SpeechRecognizer.ERROR_CLIENT);
+                    }
+                }
+            });
         }
     }
 
     public static void destroy() {
+        main.post(() -> destroyInternal());
+    }
+
+    private static void destroyInternal() {
         if (recognizer != null) {
-            recognizer.destroy();
+            try {
+                recognizer.destroy();
+            } catch (Exception ignored) {
+            }
             recognizer = null;
+            callback = null;
         }
-        callback = null;
     }
 
     // ---- internal ----

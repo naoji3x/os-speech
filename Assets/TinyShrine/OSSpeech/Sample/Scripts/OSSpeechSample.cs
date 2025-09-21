@@ -1,3 +1,4 @@
+using System.Linq;
 using TinyShrine.OSSpeech.SpeechToText;
 // using TinyShrine.OSSpeech.TextToSpeech;
 using TMPro;
@@ -34,6 +35,7 @@ namespace TinyShrine.OSSpeech.Sample
             }
             else
             {
+                this.text = string.Empty;
                 SpeechToTextAndroidService.Start();
                 buttonImage.color = Color.red;
             }
@@ -45,17 +47,20 @@ namespace TinyShrine.OSSpeech.Sample
             // TextToSpeechService.Speak(this.text);
         }
 
-        private void OnPartial(string text) => Debug.Log($"途中結果: {text}");
+        private void OnPartial(string text) => Debug.Log($"Partial result: {text}");
 
-        private void OnFinal(string text) => Debug.Log($"最終結果: {text}");
+        private void OnFinal(string text)
+        {
+            this.text = text;
+            field.text = this.text;
+            Debug.Log($"Final result: {text}");
+        }
 
-        private void OnError(int code, string message) => Debug.LogError($"エラー [{code}]: {message}");
-
-        private void OnStateChanged(string state) => Debug.Log($"状態: {state}");
+        private void OnStateChanged(string state) => Debug.Log($"State: {state}");
 
         private void Awake()
         {
-            Debug.Log("OSSpeechSample Awake");
+            Debug.Log("OSSpeechSample Awake: Starting initialization...");
             // メインスレッドの SynchronizationContext を渡す（ここがポイント）
             SpeechToTextAndroidService.Init(
                 locale: "ja-JP",
@@ -63,8 +68,9 @@ namespace TinyShrine.OSSpeech.Sample
             );
             SpeechToTextAndroidService.OnPartial += OnPartial;
             SpeechToTextAndroidService.OnFinal += OnFinal;
-            SpeechToTextAndroidService.OnError += OnError;
             SpeechToTextAndroidService.OnStateChanged += OnStateChanged;
+
+            Debug.Log("OSSpeechSample Awake: Initialization complete.");
 
             // TextToSpeechService.Init(System.Threading.SynchronizationContext.Current, language: "ja-JP");
         }
@@ -73,7 +79,6 @@ namespace TinyShrine.OSSpeech.Sample
         {
             SpeechToTextAndroidService.OnPartial -= OnPartial;
             SpeechToTextAndroidService.OnFinal -= OnFinal;
-            SpeechToTextAndroidService.OnError -= OnError;
             SpeechToTextAndroidService.OnStateChanged -= OnStateChanged;
         }
     }

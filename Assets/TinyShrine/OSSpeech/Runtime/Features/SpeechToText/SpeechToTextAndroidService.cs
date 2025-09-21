@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Threading;
 using UnityEngine;
 
@@ -11,6 +12,9 @@ namespace TinyShrine.OSSpeech.SpeechToText
         private static string currentLocale = "ja-JP";
         private static bool isInitialized;
         private static bool isListening;
+        private static bool isStopping;
+
+        private static StringBuilder textBuffer = new StringBuilder();
 
         /// <summary>途中経過（部分結果）。UIに逐次表示したいときに。</summary>
         public static event Action<string> OnPartial = static text => { };
@@ -64,14 +68,14 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 androidBridge.SetPreferOffline(false);
 
                 isInitialized = true;
-                InvokeOnMainThread(() => OnStateChanged?.Invoke("Initialized"));
+                OnStateChanged?.Invoke("Initialized");
 
                 Debug.Log($"[SpeechToTextAndroidService] Initialized with locale: {currentLocale}");
             }
             catch (Exception e)
             {
                 Debug.LogError($"[SpeechToTextAndroidService] Initialization failed: {e.Message}");
-                InvokeOnMainThread(() => OnError?.Invoke(-1, $"Initialization failed: {e.Message}"));
+                OnError?.Invoke(-1, $"Initialization failed: {e.Message}");
             }
         }
 
@@ -80,7 +84,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
             if (!isInitialized)
             {
                 Debug.LogError("[SpeechToTextAndroidService] Not initialized. Call Init() first.");
-                InvokeOnMainThread(() => OnError?.Invoke(-1, "Service not initialized"));
+                OnError?.Invoke(-1, "Service not initialized");
                 return false;
             }
 
@@ -90,6 +94,13 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 return true;
             }
 
+            if (isStopping)
+            {
+                Debug.LogWarning("[SpeechToTextAndroidService] Currently stopping. Please wait.");
+                return false;
+            }
+
+            textBuffer.Clear();
             try
             {
                 androidBridge?.StartListening();
@@ -100,7 +111,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
             catch (Exception e)
             {
                 Debug.LogError($"[SpeechToTextAndroidService] Failed to start listening: {e.Message}");
-                InvokeOnMainThread(() => OnError?.Invoke(-1, $"Failed to start: {e.Message}"));
+                OnError?.Invoke(-1, $"Failed to start: {e.Message}");
                 return false;
             }
         }
@@ -121,14 +132,15 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
             try
             {
-                androidBridge?.StopListening();
+                isStopping = true;
                 isListening = false;
+                androidBridge?.StopListening();
                 Debug.Log("[SpeechToTextAndroidService] Stopped listening.");
             }
             catch (Exception e)
             {
                 Debug.LogError($"[SpeechToTextAndroidService] Failed to stop listening: {e.Message}");
-                InvokeOnMainThread(() => OnError?.Invoke(-1, $"Failed to stop: {e.Message}"));
+                OnError?.Invoke(-1, $"Failed to stop: {e.Message}");
             }
         }
 
@@ -137,7 +149,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
         /// </summary>
         public static void Cancel()
         {
-            if (!isInitialized || !isListening)
+            if (!isInitialized || !isListening || isStopping)
             {
                 return;
             }
@@ -146,7 +158,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
             {
                 androidBridge?.Cancel();
                 isListening = false;
-                InvokeOnMainThread(() => OnStateChanged?.Invoke("Cancelled"));
+                OnStateChanged?.Invoke("Cancelled");
                 Debug.Log("[SpeechToTextAndroidService] Cancelled listening.");
             }
             catch (Exception e)
@@ -173,7 +185,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 isInitialized = false;
                 isListening = false;
 
-                InvokeOnMainThread(() => OnStateChanged?.Invoke("Disposed"));
+                OnStateChanged?.Invoke("Disposed");
                 Debug.Log("[SpeechToTextAndroidService] Disposed.");
             }
             catch (Exception e)
@@ -190,56 +202,76 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 return;
             }
 
-            androidBridge.OnReadyForSpeech += () => InvokeOnMainThread(() => OnStateChanged?.Invoke("Ready"));
+            androidBridge.OnReadyForSpeech += () => OnStateChanged?.Invoke("Ready");
 
-            androidBridge.OnBeginningOfSpeech += () => InvokeOnMainThread(() => OnStateChanged?.Invoke("Speaking"));
+            androidBridge.OnBeginningOfSpeech += () => OnStateChanged?.Invoke("Speaking");
 
-            androidBridge.OnEndOfSpeech += () => InvokeOnMainThread(() => OnStateChanged?.Invoke("ProcessingResults"));
+            androidBridge.OnEndOfSpeech += () => OnStateChanged?.Invoke("ProcessingResults");
 
             androidBridge.OnError += (errorCode) =>
             {
-                isListening = false;
-                string errorMessage = SpeechToTextAndroidBridge.GetErrorString(errorCode);
-                InvokeOnMainThread(() =>
+                if (errorCode == SpeechToTextAndroidBridge.ErrorNoMatch)
                 {
+                    if (androidBridge != null)
+                    {
+                        if (isListening)
+                        {
+                            Debug.Log("[SpeechToTextAndroidService] No match, restarting listening.");
+                            androidBridge.StartListening();
+                        }
+                        else if (isStopping)
+                        {
+                            isListening = false;
+                            isStopping = false;
+                            Debug.Log("[SpeechToTextAndroidService] No match, stopping.");
+                        }
+                    }
+                }
+                else
+                {
+                    isListening = false;
+                    string errorMessage = SpeechToTextAndroidBridge.GetErrorString(errorCode);
                     OnError?.Invoke(errorCode, errorMessage);
                     OnStateChanged?.Invoke("Error");
-                });
-                Debug.LogError($"[SpeechToTextAndroidService] Recognition error: {errorMessage} ({errorCode})");
+                    Debug.LogError($"[SpeechToTextAndroidService] Recognition error: {errorMessage} ({errorCode})");
+                }
             };
 
             androidBridge.OnResults += (resultText) =>
             {
-                isListening = false;
-                InvokeOnMainThread(() =>
+                textBuffer.Append(resultText + " 。");
+                var text = textBuffer.ToString();
+                if (isListening)
                 {
-                    OnFinal?.Invoke(resultText);
+                    Debug.Log("[SpeechToTextAndroidService] Received results while still listening, ignoring.");
+                    OnFinal?.Invoke(text);
                     OnStateChanged?.Invoke("ResultReceived");
-                });
-                Debug.Log($"[SpeechToTextAndroidService] Final result: {resultText}");
+                    Debug.Log($"[SpeechToTextAndroidService] Final result: {text}");
+                    Debug.Log("[SpeechToTextAndroidService] No match, restarting listening.");
+                    androidBridge.StartListening();
+                }
+                else if (isStopping)
+                {
+                    isStopping = false;
+                    OnFinal?.Invoke(text);
+                    OnStateChanged?.Invoke("StopAndResultReceived");
+                    Debug.Log($"[SpeechToTextAndroidService] Recording is stopped, final result: {text}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[SpeechToTextAndroidService] Should not receive final result: {text}");
+                }
             };
 
             androidBridge.OnPartialResults += (partialText) =>
             {
-                InvokeOnMainThread(() => OnPartial?.Invoke(partialText));
+                OnPartial?.Invoke(partialText);
                 Debug.Log($"[SpeechToTextAndroidService] Partial result: {partialText}");
             };
 
             // 音声レベル変化は必要に応じて実装
-            // InvokeOnMainThread(() => OnVolumeChanged?.Invoke(rmsdB));
+            // OnVolumeChanged?.Invoke(rmsdB);
             androidBridge.OnRmsChanged += (rmsdB) => { };
-        }
-
-        private static void InvokeOnMainThread(Action action)
-        {
-            if (mainContext != null)
-            {
-                mainContext.Post(_ => action(), null);
-            }
-            else
-            {
-                action();
-            }
         }
     }
 }
