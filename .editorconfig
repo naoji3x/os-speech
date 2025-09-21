@@ -60,6 +60,7 @@ csharp_using_directive_placement = outside_namespace:error
 dotnet_diagnostic.IDE0065.severity = error     # using inside/outside namespace
 dotnet_diagnostic.IDE0005.severity = error     # 未使用 using は Error（※CSharpierは削除しないためアナライザーで担保）
 dotnet_diagnostic.SA1200.severity = error      # StyleCop: using placement
+dotnet_diagnostic.SA1201.severity = none       # StyleCop: element order (P/Invokeで実用的でないため無視)
 dotnet_diagnostic.SA1210.severity = none       # StyleCop: using 並び順
 dotnet_diagnostic.SA1516.severity = none       # 要素間の空行（見た目）
 dotnet_diagnostic.SA1633.severity = none       # ファイルに標準ヘッダーが必要

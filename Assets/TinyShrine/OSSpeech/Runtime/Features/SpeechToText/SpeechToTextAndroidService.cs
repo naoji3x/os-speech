@@ -31,7 +31,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
         public static string CurrentLocale => currentLocale;
 
         /// <summary>初期化（locale 例: "ja-JP"）</summary>
-        public static void Init(string locale = "ja-JP", SynchronizationContext? mainContext = null)
+        public static void Init(SynchronizationContext mainContext, string locale = "ja-JP")
         {
             if (isInitialized)
             {
@@ -46,7 +46,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 currentLocale = locale;
 
                 // Android Bridge を初期化
-                androidBridge = new SpeechToTextAndroidBridge(mainContext ?? SynchronizationContext.Current);
+                androidBridge = new SpeechToTextAndroidBridge(mainContext);
 
                 // 音声認識が利用可能かチェック
                 if (!androidBridge.IsRecognitionAvailable())

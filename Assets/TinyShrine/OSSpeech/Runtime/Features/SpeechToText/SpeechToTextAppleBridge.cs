@@ -1,3 +1,5 @@
+#if UNITY_IOS || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -6,24 +8,50 @@ namespace TinyShrine.OSSpeech.SpeechToText
 {
     /// <summary>
     /// macOS Speech Framework のシンプルなラッパー
+    /// NOTE: このクラスはIDisposableを実装しています。using文または明示的なDispose()でリソースを解放してください。
     /// </summary>
-    public class SpeechToTextAppleBridge : IDisposable
+    public sealed class SpeechToTextAppleBridge : IDisposable
     {
-#if UNITY_IOS
+#if UNITY_IOS && !UNITY_EDITOR
         private const string LIB = "__Internal";
-#else
+#elif (UNITY_STANDALONE_OSX && !UNITY_EDITOR) || UNITY_EDITOR_OSX
         private const string LIB = "libOSSpeech"; // Plugins/macOS/SpeechToText.bundle（または .dylib）の実体名
+#else
+        private const string LIB = "libOSSpeech";
 #endif
 
-        private readonly SynchronizationContext? mainCtx;
+        // インスタンスフィールド
         private readonly ResultCb? keep; // GC防止
+        private readonly SynchronizationContext? mainContext;
         private bool disposed;
 
+#pragma warning disable IDE1006, SA1300, CA2101 // 命名スタイル
+        [DllImport(LIB)]
+        private static extern void stt_set_callback(ResultCb cb);
+
+        [DllImport(LIB)]
+        private static extern int stt_request_authorization(); // 3 = Authorized
+
+        [DllImport(LIB)]
+        private static extern int stt_set_locale([MarshalAs(UnmanagedType.LPUTF8Str)] string locale);
+
+        [DllImport(LIB)]
+        private static extern int stt_start();
+
+        [DllImport(LIB)]
+        private static extern void stt_stop();
+#pragma warning restore IDE1006, SA1300, CA2101 // 命名スタイル
+
+        // P/Invoke宣言（静的メンバー）
+        // デリゲート定義
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void ResultCb([MarshalAs(UnmanagedType.LPUTF8Str)] string text, bool isFinal);
+
         // コンストラクタ
-        public SpeechToTextAppleBridge(string locale = "ja-JP", SynchronizationContext? mainContext = null)
+        public SpeechToTextAppleBridge(SynchronizationContext mainContext, string locale = "ja-JP")
         {
             locale = string.IsNullOrEmpty(locale) ? "ja-JP" : locale;
-            mainCtx = mainContext ?? SynchronizationContext.Current; // 取得できない環境でも動くようにフォールバック
+            this.mainContext = mainContext;
             keep = OnNativeResult; // デリゲートを静的保持（AOT/GC対策）
             stt_set_callback(keep);
 
@@ -40,10 +68,6 @@ namespace TinyShrine.OSSpeech.SpeechToText
             }
             UnityEngine.Debug.LogWarning("[SpeechToTextAppleBridge] iOS/macOS 実機ビルドで有効になります。");
         }
-
-        // デリゲート定義
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate void ResultCb([MarshalAs(UnmanagedType.LPUTF8Str)] string text, bool isFinal);
 
         // イベント
 
@@ -102,7 +126,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!disposed)
             {
@@ -135,24 +159,6 @@ namespace TinyShrine.OSSpeech.SpeechToText
             }
         }
 
-        // プライベートメソッド（P/Invoke）
-#pragma warning disable IDE1006, SA1300 // 命名スタイル
-        [DllImport(LIB)]
-        private static extern void stt_set_callback(ResultCb cb);
-
-        [DllImport(LIB)]
-        private static extern int stt_request_authorization(); // 3 = Authorized
-
-        [DllImport(LIB)]
-        private static extern int stt_set_locale([MarshalAs(UnmanagedType.LPUTF8Str)] string locale);
-
-        [DllImport(LIB)]
-        private static extern int stt_start();
-
-        [DllImport(LIB)]
-        private static extern void stt_stop();
-#pragma warning restore IDE1006, SA1300 // 命名スタイル
-
         [AOT.MonoPInvokeCallback(typeof(ResultCb))]
         private void OnNativeResult(string text, bool isFinal)
         {
@@ -179,7 +185,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 }
             }
 
-            var ctx = mainCtx;
+            var ctx = mainContext;
             if (ctx != null)
             {
                 ctx.Post(_ => Raise(), null);
@@ -191,3 +197,4 @@ namespace TinyShrine.OSSpeech.SpeechToText
         }
     }
 }
+#endif

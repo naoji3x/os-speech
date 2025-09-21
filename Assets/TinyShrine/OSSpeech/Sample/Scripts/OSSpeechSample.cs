@@ -66,10 +66,8 @@ namespace TinyShrine.OSSpeech.Sample
         {
             Debug.Log("OSSpeechSample Awake: Starting initialization...");
             // メインスレッドの SynchronizationContext を渡す（ここがポイント）
-            SpeechToTextAndroidService.Init(
-                locale: "ja-JP",
-                mainContext: System.Threading.SynchronizationContext.Current
-            );
+            SpeechToTextAndroidService.Init(System.Threading.SynchronizationContext.Current);
+
             SpeechToTextAndroidService.OnPartial += OnPartial;
             SpeechToTextAndroidService.OnFinal += OnFinal;
             SpeechToTextAndroidService.OnStateChanged += OnStateChanged;
