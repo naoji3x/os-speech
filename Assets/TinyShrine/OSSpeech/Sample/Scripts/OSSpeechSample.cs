@@ -29,13 +29,13 @@ namespace TinyShrine.OSSpeech.Sample
                 {
                     this.text = field.text;
                 }
-                SpeechToTextAndroidService.Stop();
+                SpeechToTextService.Stop();
                 buttonImage.color = Color.white;
             }
             else
             {
                 this.text = string.Empty;
-                SpeechToTextAndroidService.Start();
+                SpeechToTextService.Start();
                 buttonImage.color = Color.red;
             }
             isRecording = !isRecording;
@@ -66,12 +66,12 @@ namespace TinyShrine.OSSpeech.Sample
         {
             Debug.Log("OSSpeechSample Awake: Starting initialization...");
             // メインスレッドの SynchronizationContext を渡す（ここがポイント）
-            SpeechToTextAndroidService.Init(System.Threading.SynchronizationContext.Current);
+            SpeechToTextService.Init(System.Threading.SynchronizationContext.Current);
 
-            SpeechToTextAndroidService.OnPartial += OnPartial;
-            SpeechToTextAndroidService.OnFinal += OnFinal;
-            SpeechToTextAndroidService.OnStateChanged += OnStateChanged;
+            SpeechToTextService.OnPartial += OnPartial;
+            SpeechToTextService.OnFinal += OnFinal;
 
+            // SpeechToTextAndroidService.OnStateChanged += OnStateChanged;
             Debug.Log("OSSpeechSample Awake: Initialization complete.");
 
             // TextToSpeechService.Init(System.Threading.SynchronizationContext.Current, language: "ja-JP");
@@ -79,9 +79,9 @@ namespace TinyShrine.OSSpeech.Sample
 
         private void OnDestroy()
         {
-            SpeechToTextAndroidService.OnPartial -= OnPartial;
-            SpeechToTextAndroidService.OnFinal -= OnFinal;
-            SpeechToTextAndroidService.OnStateChanged -= OnStateChanged;
+            SpeechToTextService.OnPartial -= OnPartial;
+            SpeechToTextService.OnFinal -= OnFinal;
+            // SpeechToTextAndroidService.OnStateChanged -= OnStateChanged;
         }
     }
 }

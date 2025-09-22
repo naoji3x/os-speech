@@ -1,4 +1,4 @@
-#if UNITY_IOS || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+#if UNITY_IOS || UNITY_STANDALONE_OSX || (UNITY_EDITOR_OSX && !UNITY_ANDROID)
 
 using System;
 using System.Threading;
@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace TinyShrine.OSSpeech.SpeechToText
 {
-    public static class SpeechToTextAppleService
+    public static partial class SpeechToTextService
     {
         private static SpeechToTextAppleBridge? appleBridge;
 

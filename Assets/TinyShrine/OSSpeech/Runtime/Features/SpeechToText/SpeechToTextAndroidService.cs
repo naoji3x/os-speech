@@ -1,3 +1,5 @@
+#if UNITY_ANDROID && !(UNITY_EDITOR_OSX && !UNITY_ANDROID)
+
 using System;
 using System.Text;
 using System.Threading;
@@ -5,7 +7,7 @@ using UnityEngine;
 
 namespace TinyShrine.OSSpeech.SpeechToText
 {
-    public static class SpeechToTextAndroidService
+    public static partial class SpeechToTextService
     {
         private static readonly StringBuilder TextBuffer = new();
         private static SpeechToTextAndroidBridge? androidBridge;
@@ -273,3 +275,4 @@ namespace TinyShrine.OSSpeech.SpeechToText
         }
     }
 }
+#endif
