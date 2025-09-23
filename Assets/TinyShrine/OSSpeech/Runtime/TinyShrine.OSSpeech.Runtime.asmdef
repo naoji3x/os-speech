@@ -2,7 +2,7 @@
     "name": "TinyShrine.OSSpeech.Runtime",
     "rootNamespace": "",
     "references": [
-        ""
+        "VContainer"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

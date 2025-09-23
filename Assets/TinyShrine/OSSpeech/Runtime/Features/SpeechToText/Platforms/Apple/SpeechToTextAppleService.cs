@@ -1,22 +1,20 @@
-#if UNITY_IOS || UNITY_STANDALONE_OSX || (UNITY_EDITOR_OSX && !UNITY_ANDROID)
-
 using System;
 using System.Threading;
 using UnityEngine;
 
 namespace TinyShrine.OSSpeech.SpeechToText
 {
-    public static partial class SpeechToTextService
+    public class SpeechToTextAppleService : ISpeechToTextService
     {
-        private static SpeechToTextAppleBridge? appleBridge;
+        private SpeechToTextAppleBridge? appleBridge;
 
         /// <summary>途中経過（部分結果）。UIに逐次表示したいときに。</summary>
-        public static event Action<string> OnPartial = static text => { };
+        public event Action<string> OnPartial = text => { };
 
         /// <summary>確定結果。DB保存やLLM投入などはこちらで。</summary>
-        public static event Action<string> OnFinal = static text => { };
+        public event Action<string> OnFinal = text => { };
 
-        public static void Init(SynchronizationContext mainContext, string locale = "ja-JP")
+        public void Init(SynchronizationContext mainContext, string locale = "ja-JP")
         {
             if (appleBridge != null)
             {
@@ -42,7 +40,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
             }
         }
 
-        public static bool Start()
+        public bool Start()
         {
             if (appleBridge == null)
             {
@@ -53,7 +51,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
             return appleBridge.Start();
         }
 
-        public static void Stop()
+        public void Stop()
         {
             if (appleBridge == null)
             {
@@ -63,7 +61,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
             appleBridge.Stop();
         }
 
-        public static void Dispose()
+        public void Dispose()
         {
             try
             {
@@ -76,8 +74,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
             {
                 Debug.LogError($"[SpeechToTextAppleService] Error during disposal: {e.Message}");
             }
+            GC.SuppressFinalize(this);
         }
     }
 }
-
-#endif

@@ -1,5 +1,3 @@
-#if UNITY_ANDROID
-
 using System;
 using System.Threading;
 using UnityEngine;
@@ -396,5 +394,3 @@ namespace TinyShrine.OSSpeech.SpeechToText
         }
     }
 }
-
-#endif

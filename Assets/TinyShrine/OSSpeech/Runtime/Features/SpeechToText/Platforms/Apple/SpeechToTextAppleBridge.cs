@@ -1,5 +1,3 @@
-#if UNITY_IOS || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
-
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -197,4 +195,3 @@ namespace TinyShrine.OSSpeech.SpeechToText
         }
     }
 }
-#endif

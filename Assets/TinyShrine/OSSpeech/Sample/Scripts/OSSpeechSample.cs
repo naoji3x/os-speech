@@ -3,6 +3,7 @@ using TinyShrine.OSSpeech.SpeechToText;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using VContainer;
 
 namespace TinyShrine.OSSpeech.Sample
 {
@@ -11,6 +12,9 @@ namespace TinyShrine.OSSpeech.Sample
     /// </summary>
     public class OSSpeechSample : MonoBehaviour
     {
+        [Inject]
+        private readonly ISpeechToTextService? speechToTextService;
+
         [SerializeField]
         private TMP_InputField field;
 
@@ -29,13 +33,13 @@ namespace TinyShrine.OSSpeech.Sample
                 {
                     this.text = field.text;
                 }
-                SpeechToTextService.Stop();
+                speechToTextService?.Stop();
                 buttonImage.color = Color.white;
             }
             else
             {
                 this.text = string.Empty;
-                SpeechToTextService.Start();
+                speechToTextService?.Start();
                 buttonImage.color = Color.red;
             }
             isRecording = !isRecording;
@@ -60,28 +64,28 @@ namespace TinyShrine.OSSpeech.Sample
             Debug.Log($"Final result: {text}");
         }
 
-        private void OnStateChanged(string state) => Debug.Log($"State: {state}");
-
-        private void Awake()
+        private void Start()
         {
+            if (speechToTextService == null)
+            {
+                Debug.LogError(
+                    "[SpeechToTextService] ISpeechToTextService not injected. Make sure SpeechToTextInstaller is in the scene."
+                );
+                return;
+            }
             Debug.Log("OSSpeechSample Awake: Starting initialization...");
-            // メインスレッドの SynchronizationContext を渡す（ここがポイント）
-            SpeechToTextService.Init(System.Threading.SynchronizationContext.Current);
-
-            SpeechToTextService.OnPartial += OnPartial;
-            SpeechToTextService.OnFinal += OnFinal;
-
-            // SpeechToTextAndroidService.OnStateChanged += OnStateChanged;
+            speechToTextService.OnPartial += OnPartial;
+            speechToTextService.OnFinal += OnFinal;
             Debug.Log("OSSpeechSample Awake: Initialization complete.");
-
-            // TextToSpeechService.Init(System.Threading.SynchronizationContext.Current, language: "ja-JP");
         }
 
         private void OnDestroy()
         {
-            SpeechToTextService.OnPartial -= OnPartial;
-            SpeechToTextService.OnFinal -= OnFinal;
-            // SpeechToTextAndroidService.OnStateChanged -= OnStateChanged;
+            if (speechToTextService != null)
+            {
+                speechToTextService.OnPartial -= OnPartial;
+                speechToTextService.OnFinal -= OnFinal;
+            }
         }
     }
 }

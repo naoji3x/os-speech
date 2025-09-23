@@ -1,5 +1,3 @@
-#if UNITY_ANDROID && !(UNITY_EDITOR_OSX && !UNITY_ANDROID)
-
 using System;
 using System.Text;
 using System.Threading;
@@ -7,33 +5,33 @@ using UnityEngine;
 
 namespace TinyShrine.OSSpeech.SpeechToText
 {
-    public static partial class SpeechToTextService
+    public class SpeechToTextAndroidService : ISpeechToTextService
     {
-        private static readonly StringBuilder TextBuffer = new();
-        private static SpeechToTextAndroidBridge? androidBridge;
-        private static string currentLocale = "ja-JP";
-        private static bool isInitialized;
-        private static bool isListening;
-        private static bool isStopping;
+        private readonly StringBuilder textBuffer = new();
+        private SpeechToTextAndroidBridge? androidBridge;
+        private string currentLocale = "ja-JP";
+        private bool isInitialized;
+        private bool isListening;
+        private bool isStopping;
 
         /// <summary>途中経過（部分結果）。UIに逐次表示したいときに。</summary>
-        public static event Action<string> OnPartial = static text => { };
+        public event Action<string> OnPartial = text => { };
 
         /// <summary>確定結果。DB保存やLLM投入などはこちらで。</summary>
-        public static event Action<string> OnFinal = static text => { };
+        public event Action<string> OnFinal = text => { };
 
         /// <summary>エラー発生時。エラーコードとメッセージを渡す。</summary>
-        public static event Action<int, string> OnError = static (code, message) => { };
+        public event Action<int, string> OnError = (code, message) => { };
 
         /// <summary>音声認識の状態変化（準備完了、開始、終了等）</summary>
-        public static event Action<string> OnStateChanged = static state => { };
+        public event Action<string> OnStateChanged = state => { };
 
-        public static bool IsListening => isListening;
-        public static bool IsInitialized => isInitialized;
-        public static string CurrentLocale => currentLocale;
+        public bool IsListening => isListening;
+        public bool IsInitialized => isInitialized;
+        public string CurrentLocale => currentLocale;
 
         /// <summary>初期化（locale 例: "ja-JP"）</summary>
-        public static void Init(SynchronizationContext mainContext, string locale = "ja-JP")
+        public void Init(SynchronizationContext mainContext, string locale = "ja-JP")
         {
             if (isInitialized)
             {
@@ -78,7 +76,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
             }
         }
 
-        public static bool Start()
+        public bool Start()
         {
             if (!isInitialized)
             {
@@ -99,7 +97,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 return false;
             }
 
-            TextBuffer.Clear();
+            textBuffer.Clear();
             try
             {
                 androidBridge?.StartListening();
@@ -115,7 +113,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
             }
         }
 
-        public static void Stop()
+        public void Stop()
         {
             if (!isInitialized)
             {
@@ -146,7 +144,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
         /// <summary>
         /// 音声認識をキャンセル
         /// </summary>
-        public static void Cancel()
+        public void Cancel()
         {
             if (!isInitialized || !isListening || isStopping)
             {
@@ -169,7 +167,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
         /// <summary>
         /// リソースを解放
         /// </summary>
-        public static void Dispose()
+        public void Dispose()
         {
             try
             {
@@ -191,10 +189,14 @@ namespace TinyShrine.OSSpeech.SpeechToText
             {
                 Debug.LogError($"[SpeechToTextAndroidService] Error during disposal: {e.Message}");
             }
+            finally
+            {
+                GC.SuppressFinalize(this);
+            }
         }
 
         // ---- Private Methods ----
-        private static void SetupEventHandlers()
+        private void SetupEventHandlers()
         {
             if (androidBridge == null)
             {
@@ -238,8 +240,8 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
             androidBridge.OnResults += (resultText) =>
             {
-                TextBuffer.Append(resultText + " 。");
-                var text = TextBuffer.ToString();
+                textBuffer.Append(resultText + " 。");
+                var text = textBuffer.ToString();
                 if (isListening)
                 {
                     Debug.Log("[SpeechToTextAndroidService] Received results while still listening, ignoring.");
@@ -264,7 +266,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
             androidBridge.OnPartialResults += (partialText) =>
             {
-                var textSoFar = TextBuffer.ToString() ?? string.Empty;
+                var textSoFar = textBuffer.ToString() ?? string.Empty;
                 OnPartial?.Invoke(textSoFar + partialText);
                 Debug.Log($"[SpeechToTextAndroidService] Partial result: {partialText}");
             };
@@ -275,4 +277,3 @@ namespace TinyShrine.OSSpeech.SpeechToText
         }
     }
 }
-#endif
