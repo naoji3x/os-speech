@@ -25,7 +25,6 @@ namespace TinyShrine.OSSpeech.SpeechToText.Installers
         /// <param name="builder">VContainerのコンテナビルダー</param>
         private void RegisterSpeechToTextService(IContainerBuilder builder)
         {
-            // #if UNITY_IOS || UNITY_STANDALONE_OSX || (UNITY_EDITOR && (UNITY_EDITOR_OSX || UNITY_IOS))
 #if UNITY_IOS || UNITY_STANDALONE_OSX
             // Apple プラットフォーム (iOS/macOS)
             UnityEngine.Debug.Log("[SpeechToTextInstaller] Registering SpeechToTextAppleService");
@@ -35,9 +34,8 @@ namespace TinyShrine.OSSpeech.SpeechToText.Installers
             // Android プラットフォーム
             UnityEngine.Debug.Log("[SpeechToTextInstaller] Registering SpeechToTextAndroidService");
             builder.Register<ISpeechToTextService, SpeechToTextAndroidService>(Lifetime.Singleton);
-
 #else
-            // その他のプラットフォーム (Editor/Windows/Linux等)
+            // その他のプラットフォーム (Editor/Windows/Linux等) ※Editorでは権限問題で動しないためStubを登録
             UnityEngine.Debug.Log("[SpeechToTextInstaller] Registering SpeechToTextStubService (Stub implementation)");
             builder.Register<ISpeechToTextService, SpeechToTextStubService>(Lifetime.Singleton);
 #endif

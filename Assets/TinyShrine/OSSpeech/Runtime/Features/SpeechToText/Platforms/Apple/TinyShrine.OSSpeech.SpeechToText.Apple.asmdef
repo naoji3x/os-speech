@@ -1,0 +1,19 @@
+{
+    "name": "TinyShrine.OSSpeech.SpeechToText.Apple",
+    "rootNamespace": "",
+    "references": [
+        "GUID:b5bb18d3cf4df406293ec99ce48a2b89"
+    ],
+    "includePlatforms": [
+        "iOS",
+        "macOSStandalone"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
