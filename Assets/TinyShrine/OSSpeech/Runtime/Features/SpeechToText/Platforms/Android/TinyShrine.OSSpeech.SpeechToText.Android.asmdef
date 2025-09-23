@@ -1,18 +1,21 @@
 {
-    "name": "TinyShrine.OSSpeech.SpeechToText.Android",
-    "rootNamespace": "",
-    "references": [
-        "GUID:b5bb18d3cf4df406293ec99ce48a2b89"
-    ],
-    "includePlatforms": [
-        "Android"
-    ],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "TinyShrine.OSSpeech.SpeechToText.Android",
+  "rootNamespace": "",
+  "references": [
+    "TinyShrine.OSSpeech.SpeechToText",
+    "TinyShrine.OSSpeech.SpeechToText.Installers",
+    "VContainer"
+  ],
+  "includePlatforms": [
+    "Editor",
+    "Android"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }

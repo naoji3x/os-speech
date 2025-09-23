@@ -18,8 +18,9 @@ namespace TinyShrine.OSSpeech.SpeechToText
         private const string LIB = "libOSSpeech";
 #endif
 
-        // インスタンスフィールド
-        private readonly ResultCb? keep; // GC防止
+        // インスタンス/静的フィールド（static は先頭へ）
+        private static ResultCb? sCallback; // GC防止（static に保持）
+        private static SpeechToTextAppleBridge? sCurrent; // ネイティブ側が単一想定のため、現在のインスタンスにディスパッチ
         private readonly SynchronizationContext? mainContext;
         private bool disposed;
 
@@ -40,18 +41,39 @@ namespace TinyShrine.OSSpeech.SpeechToText
         private static extern void stt_stop();
 #pragma warning restore IDE1006, SA1300, CA2101 // 命名スタイル
 
+        // ネイティブ→C# の入り口（static 必須）
+        [AOT.MonoPInvokeCallback(typeof(ResultCb))]
+        private static void StaticOnNativeResult(string text, bool isFinal)
+        {
+            var inst = sCurrent;
+            if (inst == null || inst.disposed)
+            {
+                return;
+            }
+            inst.HandleNativeResult(text, isFinal);
+        }
+
         // P/Invoke宣言（静的メンバー）
-        // デリゲート定義
+        // デリゲート定義（IL2CPP: bool は I1 指定必須）
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate void ResultCb([MarshalAs(UnmanagedType.LPUTF8Str)] string text, bool isFinal);
+        public delegate void ResultCb(
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string text,
+            [MarshalAs(UnmanagedType.I1)] bool isFinal
+        );
 
         // コンストラクタ
         public SpeechToTextAppleBridge(SynchronizationContext mainContext, string locale = "ja-JP")
         {
             locale = string.IsNullOrEmpty(locale) ? "ja-JP" : locale;
             this.mainContext = mainContext;
-            keep = OnNativeResult; // デリゲートを静的保持（AOT/GC対策）
-            stt_set_callback(keep);
+
+            // IL2CPP はインスタンスメソッドの関数ポインタをネイティブに渡せないため、static を渡す
+            if (sCallback == null)
+            {
+                sCallback = StaticOnNativeResult;
+            }
+            sCurrent = this; // 現在のインスタンスにディスパッチ
+            stt_set_callback(sCallback);
 
             var auth = stt_request_authorization(); // 3=Authorized
             if (auth != 3)
@@ -157,8 +179,8 @@ namespace TinyShrine.OSSpeech.SpeechToText
             }
         }
 
-        [AOT.MonoPInvokeCallback(typeof(ResultCb))]
-        private void OnNativeResult(string text, bool isFinal)
+        // インスタンス側の実処理
+        private void HandleNativeResult(string text, bool isFinal)
         {
             if (disposed)
             {
