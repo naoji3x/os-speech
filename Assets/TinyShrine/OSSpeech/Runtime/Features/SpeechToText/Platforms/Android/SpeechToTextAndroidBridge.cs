@@ -10,20 +10,36 @@ namespace TinyShrine.OSSpeech.SpeechToText
     /// </summary>
     public sealed class SpeechToTextAndroidBridge : AndroidJavaProxy, IDisposable
     {
-        // ---- Android SpeechRecognizer エラーコード定数 ----
-        public const int ErrorNetworkTimeout = 1;
-        public const int ErrorNetwork = 2;
-        public const int ErrorAudio = 3;
-        public const int ErrorServer = 4;
-        public const int ErrorClient = 5;
-        public const int ErrorSpeechTimeout = 6;
-        public const int ErrorNoMatch = 7;
-        public const int ErrorRecognizerBusy = 8;
-        public const int ErrorInsufficientPermissions = 9;
+        // ---- Android SpeechRecognizer エラーコード ----
+        public enum ErrorCode
+        {
+            NetworkTimeout = 1,
+            Network = 2,
+            Audio = 3,
+            Server = 4,
+            Client = 5,
+            SpeechTimeout = 6,
+            NoMatch = 7,
+            RecognizerBusy = 8,
+            InsufficientPermissions = 9,
+        }
 
         // ---- Java 側シンボル ----
         private const string AndroidBridgeClass = "jp.tinyshrine.osspeech.SpeechToTextBridge";
         private const string CallbackInterface = "jp.tinyshrine.osspeech.SpeechToTextBridge$Callback";
+
+        // メインスレッド呼び出しの割当て削減（毎回のラムダ生成を回避）
+        private static readonly SendOrPostCallback PostInvoker = state =>
+        {
+            try
+            {
+                ((Action)state!).Invoke();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+        };
 
         // ---- フィールド ----
         private readonly AndroidJavaClass bridgeClass;
@@ -62,25 +78,25 @@ namespace TinyShrine.OSSpeech.SpeechToText
         public event Action? OnBeginningOfSpeech;
         public event Action<float>? OnRmsChanged;
         public event Action? OnEndOfSpeech;
-        public event Action<int>? OnError;
+        public event Action<ErrorCode>? OnError;
         public event Action<string>? OnResults;
         public event Action<string>? OnPartialResults;
 
         // ---- Public API ----
 
         /// <summary>エラーコードを文字列に変換</summary>
-        public static string GetErrorString(int errorCode) =>
+        public static string GetErrorString(ErrorCode errorCode) =>
             errorCode switch
             {
-                ErrorNetworkTimeout => "Network timeout",
-                ErrorNetwork => "Network error",
-                ErrorAudio => "Audio recording error",
-                ErrorServer => "Server error",
-                ErrorClient => "Client error",
-                ErrorSpeechTimeout => "Speech input timeout",
-                ErrorNoMatch => "No speech match",
-                ErrorRecognizerBusy => "Recognition service busy",
-                ErrorInsufficientPermissions => "Insufficient permissions",
+                ErrorCode.NetworkTimeout => "Network timeout",
+                ErrorCode.Network => "Network error",
+                ErrorCode.Audio => "Audio recording error",
+                ErrorCode.Server => "Server error",
+                ErrorCode.Client => "Client error",
+                ErrorCode.SpeechTimeout => "Speech input timeout",
+                ErrorCode.NoMatch => "No speech match",
+                ErrorCode.RecognizerBusy => "Recognition service busy",
+                ErrorCode.InsufficientPermissions => "Insufficient permissions",
                 _ => $"Unknown error ({errorCode})",
             };
 
@@ -94,7 +110,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 Debug.LogError("[SpeechToTextAndroidBridge] currentActivity is null.");
                 return false;
             }
-            return SafeCallStaticRet<bool>("isRecognitionAvailable", act);
+            return SafeCallStaticRet<bool, AndroidJavaObject?>("isRecognitionAvailable", act);
         }
 
         /// <summary>言語設定（例: "ja-JP", "en-US"）</summary>
@@ -204,7 +220,8 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 return;
             }
 
-            InvokeOnMainThread(() => OnError?.Invoke(error));
+            var code = (ErrorCode)error;
+            InvokeOnMainThread(() => OnError?.Invoke(code));
         }
 
         public void onResults(AndroidJavaObject results)
@@ -286,28 +303,15 @@ namespace TinyShrine.OSSpeech.SpeechToText
             }
             catch (Exception e)
             {
-                Debug.LogError($"[STT] Dispose error: {e.Message}");
+                Debug.LogError($"[SpeechToTextAndroidBridge] Dispose error: {e.Message}");
             }
         }
 
         // ---- Utility ----
         private void InvokeOnMainThread(Action action)
         {
-            // 必ずメインスレッドへポスト（例外はログに）
-            mainContext.Post(
-                _ =>
-                {
-                    try
-                    {
-                        action();
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogException(ex);
-                    }
-                },
-                null
-            );
+            // 必ずメインスレッドへポスト（例外は PostInvoker 内でログ）
+            mainContext.Post(PostInvoker, action);
         }
 
         /// <summary>Bundle から最初の認識結果を取得</summary>
@@ -368,27 +372,64 @@ namespace TinyShrine.OSSpeech.SpeechToText
         }
 
         // ---- Java 呼び出しの安全ラッパ ----
-        private void SafeCallStatic(string method, params object[] args)
+        private void SafeCallStatic(string method)
         {
             try
             {
-                bridgeClass.CallStatic(method, args);
+                bridgeClass.CallStatic(method);
             }
             catch (Exception e)
             {
-                Debug.LogError($"[STT] {method} failed: {e.Message}");
+                Debug.LogError($"[SpeechToTextAndroidBridge] {method} failed: {e.Message}");
             }
         }
 
-        private T SafeCallStaticRet<T>(string method, params object[] args)
+        private void SafeCallStatic<T1>(string method, T1 arg1)
         {
             try
             {
-                return bridgeClass.CallStatic<T>(method, args);
+                bridgeClass.CallStatic(method, arg1);
             }
             catch (Exception e)
             {
-                Debug.LogError($"[STT] {method} failed: {e.Message}");
+                Debug.LogError($"[SpeechToTextAndroidBridge] {method} failed: {e.Message}");
+            }
+        }
+
+        private void SafeCallStatic<T1, T2>(string method, T1 arg1, T2 arg2)
+        {
+            try
+            {
+                bridgeClass.CallStatic(method, arg1, arg2);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[SpeechToTextAndroidBridge] {method} failed: {e.Message}");
+            }
+        }
+
+        private T SafeCallStaticRet<T>(string method)
+        {
+            try
+            {
+                return bridgeClass.CallStatic<T>(method);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[SpeechToTextAndroidBridge] {method} failed: {e.Message}");
+                return default!;
+            }
+        }
+
+        private T SafeCallStaticRet<T, T1>(string method, T1 arg1)
+        {
+            try
+            {
+                return bridgeClass.CallStatic<T>(method, arg1);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[SpeechToTextAndroidBridge] {method} failed: {e.Message}");
                 return default!;
             }
         }

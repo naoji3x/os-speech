@@ -211,7 +211,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
             androidBridge.OnError += (errorCode) =>
             {
-                if (errorCode == SpeechToTextAndroidBridge.ErrorNoMatch)
+                if (errorCode == SpeechToTextAndroidBridge.ErrorCode.NoMatch)
                 {
                     if (androidBridge != null)
                     {
@@ -232,9 +232,11 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 {
                     isListening = false;
                     string errorMessage = SpeechToTextAndroidBridge.GetErrorString(errorCode);
-                    OnError?.Invoke(errorCode, errorMessage);
+                    OnError?.Invoke((int)errorCode, errorMessage);
                     OnStateChanged?.Invoke("Error");
-                    Debug.LogError($"[SpeechToTextAndroidService] Recognition error: {errorMessage} ({errorCode})");
+                    Debug.LogError(
+                        $"[SpeechToTextAndroidService] Recognition error: {errorMessage} ({(int)errorCode})"
+                    );
                 }
             };
 
