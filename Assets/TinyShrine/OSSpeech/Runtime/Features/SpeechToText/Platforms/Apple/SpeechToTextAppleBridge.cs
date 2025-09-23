@@ -45,13 +45,10 @@ namespace TinyShrine.OSSpeech.SpeechToText
         [AOT.MonoPInvokeCallback(typeof(ResultCb))]
         private static void StaticOnNativeResult(string text, bool isFinal)
         {
-            var inst = staticCurrent;
-            // if (inst == null || inst.disposed)
-            if (inst?.disposed != false)
+            if (staticCurrent?.disposed == false)
             {
-                return;
+                staticCurrent.HandleNativeResult(text, isFinal);
             }
-            inst.HandleNativeResult(text, isFinal);
         }
 
         // P/Invoke宣言（静的メンバー）
