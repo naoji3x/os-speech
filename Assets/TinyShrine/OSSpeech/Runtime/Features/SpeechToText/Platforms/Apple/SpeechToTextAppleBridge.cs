@@ -12,32 +12,32 @@ namespace TinyShrine.OSSpeech.SpeechToText
     {
 #if UNITY_IOS && !UNITY_EDITOR
         private const string LIB = "__Internal";
-#elif (UNITY_STANDALONE_OSX && !UNITY_EDITOR) || UNITY_EDITOR_OSX
-        private const string LIB = "libOSSpeech"; // Plugins/macOS/SpeechToText.bundle（または .dylib）の実体名
+#elif UNITY_STANDALONE_OSX && !UNITY_EDITOR
+        private const string LIB = "libOSSpeech"; // Plugins/macOS/libOSSpeech.dylibの実体名
 #else
         private const string LIB = "libOSSpeech";
 #endif
 
         // インスタンス/静的フィールド（static は先頭へ）
-        private static ResultCb? sCallback; // GC防止（static に保持）
-        private static SpeechToTextAppleBridge? sCurrent; // ネイティブ側が単一想定のため、現在のインスタンスにディスパッチ
+        private static ResultCb? staticCallback; // GC防止（static に保持）
+        private static SpeechToTextAppleBridge? staticCurrent; // ネイティブ側が単一想定のため、現在のインスタンスにディスパッチ
         private readonly SynchronizationContext? mainContext;
         private bool disposed;
 
 #pragma warning disable IDE1006, SA1300, CA2101 // 命名スタイル
-        [DllImport(LIB)]
+        [DllImport(LIB, CallingConvention = CallingConvention.Cdecl)]
         private static extern void stt_set_callback(ResultCb cb);
 
-        [DllImport(LIB)]
+        [DllImport(LIB, CallingConvention = CallingConvention.Cdecl)]
         private static extern int stt_request_authorization(); // 3 = Authorized
 
-        [DllImport(LIB)]
+        [DllImport(LIB, CallingConvention = CallingConvention.Cdecl)]
         private static extern int stt_set_locale([MarshalAs(UnmanagedType.LPUTF8Str)] string locale);
 
-        [DllImport(LIB)]
+        [DllImport(LIB, CallingConvention = CallingConvention.Cdecl)]
         private static extern int stt_start();
 
-        [DllImport(LIB)]
+        [DllImport(LIB, CallingConvention = CallingConvention.Cdecl)]
         private static extern void stt_stop();
 #pragma warning restore IDE1006, SA1300, CA2101 // 命名スタイル
 
@@ -45,8 +45,9 @@ namespace TinyShrine.OSSpeech.SpeechToText
         [AOT.MonoPInvokeCallback(typeof(ResultCb))]
         private static void StaticOnNativeResult(string text, bool isFinal)
         {
-            var inst = sCurrent;
-            if (inst == null || inst.disposed)
+            var inst = staticCurrent;
+            // if (inst == null || inst.disposed)
+            if (inst?.disposed != false)
             {
                 return;
             }
@@ -68,12 +69,12 @@ namespace TinyShrine.OSSpeech.SpeechToText
             this.mainContext = mainContext;
 
             // IL2CPP はインスタンスメソッドの関数ポインタをネイティブに渡せないため、static を渡す
-            if (sCallback == null)
+            if (staticCallback == null)
             {
-                sCallback = StaticOnNativeResult;
+                staticCallback = StaticOnNativeResult;
             }
-            sCurrent = this; // 現在のインスタンスにディスパッチ
-            stt_set_callback(sCallback);
+            staticCurrent = this; // 現在のインスタンスにディスパッチ
+            stt_set_callback(staticCallback);
 
             var auth = stt_request_authorization(); // 3=Authorized
             if (auth != 3)
@@ -176,6 +177,12 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 // アンマネージドリソースの解放
                 // ネイティブ側のコールバックをクリア（可能であれば）
                 disposed = true;
+
+                // このインスタンスが現行ディスパッチ先なら解除
+                if (ReferenceEquals(staticCurrent, this))
+                {
+                    staticCurrent = null;
+                }
             }
         }
 

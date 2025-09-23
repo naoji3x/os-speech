@@ -30,7 +30,7 @@ PluginImporter:
     Editor:
       enabled: 1
       settings:
-        CPU: ARM64
+        CPU: AnyCPU
         DefaultValueInitialized: true
         OS: OSX
     Linux64:
@@ -40,7 +40,7 @@ PluginImporter:
     OSXUniversal:
       enabled: 1
       settings:
-        CPU: ARM64
+        CPU: AnyCPU
     Win:
       enabled: 0
       settings:
@@ -54,8 +54,8 @@ PluginImporter:
       settings:
         AddToEmbeddedBinaries: false
         CPU: AnyCPU
-        CompileFlags: 
-        FrameworkDependencies: 
-  userData: 
-  assetBundleName: 
-  assetBundleVariant: 
+        CompileFlags:
+        FrameworkDependencies:
+  userData:
+  assetBundleName:
+  assetBundleVariant:

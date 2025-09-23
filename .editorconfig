@@ -54,6 +54,7 @@ dotnet_diagnostic.IDE0130.severity = none      # namespaceとフォルダー構�
 # 必須のものだけ Error に（末尾改行など）
 dotnet_diagnostic.SA*.severity = warning
 dotnet_diagnostic.SA1518.severity = error      # 末尾改行を要求
+dotnet_diagnostic.SA1636.severity = none       # 著作権ヘッダー（Copyright）一致チェックを無視
 
 # using の配置/並びは CSharpier が触るため衝突回避
 csharp_using_directive_placement = outside_namespace:error

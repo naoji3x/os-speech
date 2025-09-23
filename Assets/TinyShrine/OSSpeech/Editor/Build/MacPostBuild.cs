@@ -1,4 +1,3 @@
-#if UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
 using System.IO;
 using UnityEditor;
 using UnityEditor.Callbacks;
@@ -30,4 +29,3 @@ namespace TinyShrine.OSSpeech.Editor.Build
         }
     }
 }
-#endif
