@@ -1,7 +1,10 @@
 {
-  "name": "TinyShrine.OSSpeech.SpeechToText",
+  "name": "TinyShrine.OSSpeech.TextToSpeech.Installers",
   "rootNamespace": "",
-  "references": [],
+  "references": [
+    "TinyShrine.OSSpeech.TextToSpeech",
+    "VContainer"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

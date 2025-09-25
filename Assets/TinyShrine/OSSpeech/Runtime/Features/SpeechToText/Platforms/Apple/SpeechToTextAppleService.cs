@@ -6,7 +6,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
 {
     public class SpeechToTextAppleService : ISpeechToTextService
     {
-        private SpeechToTextAppleBridge? appleBridge;
+        private SpeechToTextAppleBridge? bridge;
 
         /// <summary>途中経過（部分結果）。UIに逐次表示したいときに。</summary>
         public event Action<string> OnPartial = text => { };
@@ -16,7 +16,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
         public void Init(SynchronizationContext mainContext, string locale = "ja-JP")
         {
-            if (appleBridge != null)
+            if (bridge != null)
             {
                 Debug.LogWarning(
                     "[SpeechToTextAppleService] Already initialized. Call Dispose() first if you want to reinitialize."
@@ -27,11 +27,11 @@ namespace TinyShrine.OSSpeech.SpeechToText
             try
             {
                 // Apple Bridge を初期化
-                appleBridge = new SpeechToTextAppleBridge(mainContext, locale);
+                bridge = new SpeechToTextAppleBridge(mainContext, locale);
 
                 // イベントハンドラーを設定
-                appleBridge.OnPartial += text => OnPartial?.Invoke(text);
-                appleBridge.OnFinal += text => OnFinal?.Invoke(text);
+                bridge.OnPartial += text => OnPartial?.Invoke(text);
+                bridge.OnFinal += text => OnFinal?.Invoke(text);
             }
             catch (Exception ex)
             {
@@ -42,23 +42,23 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
         public bool Start()
         {
-            if (appleBridge == null)
+            if (bridge == null)
             {
                 Debug.LogError("[SpeechToTextAppleService] Not initialized. Call Init() first.");
                 return false;
             }
 
-            return appleBridge.Start();
+            return bridge.Start();
         }
 
         public void Stop()
         {
-            if (appleBridge == null)
+            if (bridge == null)
             {
                 return;
             }
 
-            appleBridge.Stop();
+            bridge.Stop();
         }
 
         public void Dispose()
@@ -66,8 +66,8 @@ namespace TinyShrine.OSSpeech.SpeechToText
             try
             {
                 Stop();
-                appleBridge?.Dispose();
-                appleBridge = null;
+                bridge?.Dispose();
+                bridge = null;
                 Debug.Log("[SpeechToTextAppleService] Disposed.");
             }
             catch (Exception e)

@@ -1,8 +1,15 @@
 {
-  "name": "TinyShrine.OSSpeech.SpeechToText",
+  "name": "TinyShrine.OSSpeech.TextToSpeech.Android",
   "rootNamespace": "",
-  "references": [],
-  "includePlatforms": [],
+  "references": [
+    "TinyShrine.OSSpeech.TextToSpeech",
+    "TinyShrine.OSSpeech.TextToSpeech.Installers",
+    "VContainer"
+  ],
+  "includePlatforms": [
+    "Editor",
+    "Android"
+  ],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
   "overrideReferences": false,

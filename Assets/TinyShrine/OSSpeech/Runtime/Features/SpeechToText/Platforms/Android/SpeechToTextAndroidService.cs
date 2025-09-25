@@ -8,7 +8,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
     public class SpeechToTextAndroidService : ISpeechToTextService
     {
         private readonly StringBuilder textBuffer = new();
-        private SpeechToTextAndroidBridge? androidBridge;
+        private SpeechToTextAndroidBridge? bridge;
         private string currentLocale = "ja-JP";
         private bool isInitialized;
         private bool isListening;
@@ -46,10 +46,10 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 currentLocale = locale;
 
                 // Android Bridge を初期化
-                androidBridge = new SpeechToTextAndroidBridge(mainContext);
+                bridge = new SpeechToTextAndroidBridge(mainContext);
 
                 // 音声認識が利用可能かチェック
-                if (!androidBridge.IsRecognitionAvailable())
+                if (!bridge.IsRecognitionAvailable())
                 {
                     Debug.LogError("[SpeechToTextAndroidService] Speech recognition is not available on this device.");
                     OnError?.Invoke(-1, "Speech recognition not available");
@@ -60,9 +60,9 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 SetupEventHandlers();
 
                 // Android Bridge の設定
-                androidBridge.SetLanguage(currentLocale);
-                androidBridge.SetPartialResults(true);
-                androidBridge.SetPreferOffline(false);
+                bridge.SetLanguage(currentLocale);
+                bridge.SetPartialResults(true);
+                bridge.SetPreferOffline(false);
 
                 isInitialized = true;
                 OnStateChanged?.Invoke("Initialized");
@@ -100,7 +100,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
             textBuffer.Clear();
             try
             {
-                androidBridge?.StartListening();
+                bridge?.StartListening();
                 isListening = true;
                 Debug.Log("[SpeechToTextAndroidService] Started listening.");
                 return true;
@@ -131,7 +131,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
             {
                 isStopping = true;
                 isListening = false;
-                androidBridge?.StopListening();
+                bridge?.StopListening();
                 Debug.Log("[SpeechToTextAndroidService] Stopped listening.");
             }
             catch (Exception e)
@@ -153,7 +153,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
             try
             {
-                androidBridge?.Cancel();
+                bridge?.Cancel();
                 isListening = false;
                 OnStateChanged?.Invoke("Cancelled");
                 Debug.Log("[SpeechToTextAndroidService] Cancelled listening.");
@@ -176,8 +176,8 @@ namespace TinyShrine.OSSpeech.SpeechToText
                     Stop();
                 }
 
-                androidBridge?.Dispose();
-                androidBridge = null;
+                bridge?.Dispose();
+                bridge = null;
 
                 isInitialized = false;
                 isListening = false;
@@ -198,27 +198,27 @@ namespace TinyShrine.OSSpeech.SpeechToText
         // ---- Private Methods ----
         private void SetupEventHandlers()
         {
-            if (androidBridge == null)
+            if (bridge == null)
             {
                 return;
             }
 
-            androidBridge.OnReadyForSpeech += () => OnStateChanged?.Invoke("Ready");
+            bridge.OnReadyForSpeech += () => OnStateChanged?.Invoke("Ready");
 
-            androidBridge.OnBeginningOfSpeech += () => OnStateChanged?.Invoke("Speaking");
+            bridge.OnBeginningOfSpeech += () => OnStateChanged?.Invoke("Speaking");
 
-            androidBridge.OnEndOfSpeech += () => OnStateChanged?.Invoke("ProcessingResults");
+            bridge.OnEndOfSpeech += () => OnStateChanged?.Invoke("ProcessingResults");
 
-            androidBridge.OnError += (errorCode) =>
+            bridge.OnError += (errorCode) =>
             {
                 if (errorCode == SpeechToTextAndroidBridge.ErrorCode.NoMatch)
                 {
-                    if (androidBridge != null)
+                    if (bridge != null)
                     {
                         if (isListening)
                         {
                             Debug.Log("[SpeechToTextAndroidService] No match, restarting listening.");
-                            androidBridge.StartListening();
+                            bridge.StartListening();
                         }
                         else if (isStopping)
                         {
@@ -240,7 +240,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 }
             };
 
-            androidBridge.OnResults += (resultText) =>
+            bridge.OnResults += (resultText) =>
             {
                 textBuffer.Append(resultText + " 。");
                 var text = textBuffer.ToString();
@@ -251,7 +251,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
                     OnStateChanged?.Invoke("ResultReceived");
                     Debug.Log($"[SpeechToTextAndroidService] Final result: {text}");
                     Debug.Log("[SpeechToTextAndroidService] No match, restarting listening.");
-                    androidBridge.StartListening();
+                    bridge.StartListening();
                 }
                 else if (isStopping)
                 {
@@ -266,7 +266,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 }
             };
 
-            androidBridge.OnPartialResults += (partialText) =>
+            bridge.OnPartialResults += (partialText) =>
             {
                 var textSoFar = textBuffer.ToString() ?? string.Empty;
                 OnPartial?.Invoke(textSoFar + partialText);
@@ -275,7 +275,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
             // 音声レベル変化は必要に応じて実装
             // OnVolumeChanged?.Invoke(rmsdB);
-            androidBridge.OnRmsChanged += (rmsdB) => { };
+            bridge.OnRmsChanged += (rmsdB) => { };
         }
     }
 }

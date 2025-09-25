@@ -117,19 +117,19 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             var result = tts_set_language(string.IsNullOrEmpty(language) ? "ja-JP" : language);
         }
 
-        public static void SetLanguage(string lang)
+        public void SetLanguage(string lang)
         {
             var result = tts_set_language(string.IsNullOrEmpty(lang) ? "ja-JP" : lang);
         }
 
         /// <summary>identifier か language（例: "ja-JP"）。null で既定。</summary>
-        public static void SetVoiceId(string identifierOrNull)
+        public void SetVoiceId(string identifierOrNull)
         {
             var result = tts_set_voice_id(identifierOrNull);
         }
 
         /// <summary>発話（rate は 0.5..1.5 推奨 / pitch 0.5..2.0 / volume 0..1）。queue=false で即時置き換え。</summary>
-        public static bool Speak(
+        public bool Speak(
             string text,
             float rate01 = 1.0f,
             float pitch = 1.0f,
@@ -151,12 +151,12 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             return rc == 0;
         }
 
-        public static void Stop() => tts_stop();
+        public void Stop() => tts_stop();
 
-        public static bool IsSpeaking() => tts_is_speaking() == 1;
+        public bool IsSpeaking() => tts_is_speaking() == 1;
 
         /// <summary>利用可能な音声一覧（JSON: [{identifier, language, name}]）。失敗時 null。</summary>
-        public static string? ListVoicesJson()
+        public string? ListVoicesJson()
         {
             var p = tts_list_voices_json();
             if (p == IntPtr.Zero)

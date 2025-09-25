@@ -4,9 +4,12 @@ using UnityEngine;
 
 namespace TinyShrine.OSSpeech.TextToSpeech
 {
-    public class TextToSpeechAppleService : ITextToSpeechService, IDisposable
+    /// <summary>
+    /// Android 向け TextToSpeech サービス実装。<see cref="TextToSpeechAndroidBridge"/> をラップし ITextToSpeechService を提供します。
+    /// </summary>
+    public class TextToSpeechAndroidService : ITextToSpeechService, IDisposable
     {
-        private TextToSpeechAppleBridge? bridge;
+        private TextToSpeechAndroidBridge? bridge;
         private bool disposed;
 
         public event Action OnStart = static () => { };
@@ -14,54 +17,54 @@ namespace TinyShrine.OSSpeech.TextToSpeech
         public event Action OnCancel = static () => { };
         public event Action OnError = static () => { };
 
-        public void Init(SynchronizationContext mainContext, string language = "ja-JP")
+        /// <inheritdoc />
+        public void Init(SynchronizationContext mainContext, string locale = "ja-JP")
         {
             if (bridge != null)
             {
                 Debug.LogWarning(
-                    "[TextToSpeechAppleService] すでに初期化されています。再初期化する場合は先にDispose()を呼んでください。"
+                    "[TextToSpeechAndroidService] すでに初期化済みです。再初期化する場合は Dispose() してください。"
                 );
                 return;
             }
             try
             {
-                // Apple Bridge を初期化
-                bridge = new TextToSpeechAppleBridge(mainContext, language);
-
-                // イベントハンドラーを設定
+                bridge = new TextToSpeechAndroidBridge(mainContext, locale);
                 bridge.OnStart += () => OnStart?.Invoke();
                 bridge.OnFinish += () => OnFinish?.Invoke();
                 bridge.OnCancel += () => OnCancel?.Invoke();
                 bridge.OnError += () => OnError?.Invoke();
-
-                // 言語を設定
-                SetLanguage(language);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[TextToSpeechAppleService] 初期化に失敗しました: {ex.Message}");
+                Debug.LogError($"[TextToSpeechAndroidService] 初期化に失敗: {ex.Message}");
                 bridge = null;
             }
         }
 
+        /// <inheritdoc />
         public void SetLanguage(string lang)
         {
             if (!EnsureReady())
             {
                 return;
             }
+
             bridge!.SetLanguage(lang);
         }
 
+        /// <inheritdoc />
         public void SetVoiceId(string identifierOrNull)
         {
             if (!EnsureReady())
             {
                 return;
             }
+
             bridge!.SetVoiceId(identifierOrNull);
         }
 
+        /// <inheritdoc />
         public bool Speak(
             string text,
             float rate01 = 1.0f,
@@ -74,42 +77,51 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             {
                 return false;
             }
+
             return bridge!.Speak(text, rate01, pitch, volume01, queue);
         }
 
+        /// <inheritdoc />
         public void Stop()
         {
             if (!EnsureReady())
             {
                 return;
             }
+
             bridge!.Stop();
         }
 
+        /// <inheritdoc />
         public bool IsSpeaking()
         {
             if (!EnsureReady())
             {
                 return false;
             }
+
             return bridge!.IsSpeaking();
         }
 
+        /// <inheritdoc />
         public string? ListVoicesJson()
         {
             if (!EnsureReady())
             {
                 return null;
             }
+
             return bridge!.ListVoicesJson();
         }
 
+        /// <inheritdoc />
         public AudioClip? SynthesizeToClip(string text, float rate01 = 1.0f, float pitch = 1.0f, float volume01 = 1.0f)
         {
             if (!EnsureReady())
             {
                 return null;
             }
+
             return bridge!.SynthesizeToClip(text, rate01, pitch, volume01);
         }
 
@@ -122,27 +134,26 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// 拡張可能な Dispose パターン本体。
+        /// </summary>
         protected virtual void Dispose(bool disposing)
         {
             if (disposed)
             {
                 return;
             }
+
             if (disposing)
             {
                 try
                 {
-                    // 話中であれば停止
-                    if (bridge != null && bridge.IsSpeaking())
-                    {
-                        bridge.Stop();
-                    }
                     bridge?.Dispose();
                     bridge = null;
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"[TextToSpeechAppleService] Dispose に失敗しました: {e.Message}");
+                    Debug.LogError($"[TextToSpeechAndroidService] Dispose 失敗: {e.Message}");
                 }
             }
             disposed = true;
@@ -152,12 +163,12 @@ namespace TinyShrine.OSSpeech.TextToSpeech
         {
             if (disposed)
             {
-                Debug.LogError("[TextToSpeechAppleService] 既に Dispose 済みです。");
+                Debug.LogError("[TextToSpeechAndroidService] 既に Dispose 済みです。");
                 return false;
             }
             if (bridge == null)
             {
-                Debug.LogError("[TextToSpeechAppleService] Init() がまだ呼ばれていません。");
+                Debug.LogError("[TextToSpeechAndroidService] Init() がまだ呼ばれていません。");
                 return false;
             }
             return true;

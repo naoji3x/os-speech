@@ -1,0 +1,22 @@
+{
+  "name": "TinyShrine.OSSpeech.TextToSpeech.Apple",
+  "rootNamespace": "",
+  "references": [
+    "TinyShrine.OSSpeech.TextToSpeech",
+    "TinyShrine.OSSpeech.TextToSpeech.Installers",
+    "VContainer"
+  ],
+  "includePlatforms": [
+    "Editor",
+    "iOS",
+    "macOSStandalone"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

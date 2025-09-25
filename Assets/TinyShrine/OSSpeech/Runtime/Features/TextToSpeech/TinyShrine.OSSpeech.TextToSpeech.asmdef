@@ -1,5 +1,5 @@
 {
-  "name": "TinyShrine.OSSpeech.SpeechToText",
+  "name": "TinyShrine.OSSpeech.TextToSpeech",
   "rootNamespace": "",
   "references": [],
   "includePlatforms": [],
