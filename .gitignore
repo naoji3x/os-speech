@@ -147,3 +147,4 @@ plugins/windows/**/x64/
 plugins/windows/**/Debug*/
 plugins/windows/**/Release*/
 
+mono_crash.*

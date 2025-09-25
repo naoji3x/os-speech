@@ -1,5 +1,5 @@
 using TinyShrine.OSSpeech.SpeechToText;
-// using TinyShrine.OSSpeech.TextToSpeech;
+using TinyShrine.OSSpeech.TextToSpeech;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,6 +14,9 @@ namespace TinyShrine.OSSpeech.Sample
     {
         [Inject]
         private readonly ISpeechToTextService? speechToTextService;
+
+        [Inject]
+        private readonly ITextToSpeechService? textToSpeechService;
 
         [SerializeField]
         private TMP_InputField field;
@@ -47,21 +50,20 @@ namespace TinyShrine.OSSpeech.Sample
 
         public void OnSpeakClick()
         {
-            // TextToSpeechService.Speak(this.text);
+            textToSpeechService?.Speak(this.text);
         }
 
         private void OnPartial(string text)
         {
             this.text = text;
             field.text = this.text;
-            Debug.Log($"Partial result: {text}");
         }
 
         private void OnFinal(string text)
         {
+            Debug.Log($"Final result: {text}");
             this.text = text;
             field.text = this.text;
-            Debug.Log($"Final result: {text}");
         }
 
         private void Start()
