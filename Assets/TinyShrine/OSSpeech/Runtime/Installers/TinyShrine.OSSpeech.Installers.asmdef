@@ -2,8 +2,6 @@
   "name": "TinyShrine.OSSpeech.Installers",
   "rootNamespace": "",
   "references": [
-    "TinyShrine.OSSpeech.SpeechToText",
-    "TinyShrine.OSSpeech.TextToSpeech",
     "TinyShrine.OSSpeech.SpeechToText.Installers",
     "TinyShrine.OSSpeech.TextToSpeech.Installers",
     "VContainer"

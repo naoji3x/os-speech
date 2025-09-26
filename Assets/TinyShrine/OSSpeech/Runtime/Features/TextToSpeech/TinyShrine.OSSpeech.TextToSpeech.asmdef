@@ -1,9 +1,7 @@
 {
   "name": "TinyShrine.OSSpeech.TextToSpeech",
   "rootNamespace": "",
-  "references": [
-    "TinyShrine.OSSpeech.Runtime"
-  ],
+  "references": [],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
