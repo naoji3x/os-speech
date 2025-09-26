@@ -14,6 +14,12 @@ private var engine: AVAudioEngine?
 private var request: SFSpeechAudioBufferRecognitionRequest?
 private var task: SFSpeechRecognitionTask?
 
+// Stop/Final の堅牢化用の状態
+private var lastNonEmptyText: String = ""
+private var hasSentFinal: Bool = false
+private var stopRequested: Bool = false
+private var finalFallbackWorkItem: DispatchWorkItem?
+
 @_cdecl("stt_set_callback")
 public func stt_set_callback(_ cb: @escaping SttCallback) { gCallback = cb }
 
@@ -61,6 +67,13 @@ public func stt_start() -> Int32 {
   request?.shouldReportPartialResults = true
   guard let eng = engine, let req = request else { return -5 }
 
+  // 状態初期化
+  lastNonEmptyText = ""
+  hasSentFinal = false
+  stopRequested = false
+  finalFallbackWorkItem?.cancel()
+  finalFallbackWorkItem = nil
+
   let node = eng.inputNode
   let fmt = node.outputFormat(forBus: 0)
   node.removeTap(onBus: 0)
@@ -74,22 +87,75 @@ public func stt_start() -> Int32 {
 
   task = recognizer?.recognitionTask(with: req) { result, error in
     if let r = result {
-      r.bestTranscription.formattedString.withCString { cstr in
+      let currentText = r.bestTranscription.formattedString
+      if !currentText.isEmpty { lastNonEmptyText = currentText }
+
+      // Final は空なら最後の非空をフォールバック
+      let textToSend: String = (r.isFinal && currentText.isEmpty) ? lastNonEmptyText : currentText
+      textToSend.withCString { cstr in
         gCallback?(cstr, r.isFinal)
       }
-      if r.isFinal { cleanup() }
+
+      if r.isFinal {
+        hasSentFinal = true
+        finalFallbackWorkItem?.cancel()
+        finalFallbackWorkItem = nil
+        cleanup()
+        return
+      }
     }
-    if error != nil { cleanup() }
+
+    if let _ = error {
+      // Stop 要求でエラー経路になった場合でも最終を補完（空でも必ずFinalを送る）
+      if stopRequested && !hasSentFinal {
+        lastNonEmptyText.withCString { cstr in gCallback?(cstr, true) }
+        hasSentFinal = true
+      }
+      finalFallbackWorkItem?.cancel()
+      finalFallbackWorkItem = nil
+      cleanup()
+    }
   }
   return 0
 }
 
 @_cdecl("stt_stop")
-public func stt_stop() { cleanup() }
+public func stt_stop() {
+  stopRequested = true
+
+  // 入力を止め、追加のオーディオが来ないことを知らせる（グレースフルクローズ）
+  if let e = engine {
+    e.inputNode.removeTap(onBus: 0)
+    e.stop()
+  }
+  request?.endAudio()
+
+  // しばらく待っても recognitionTask から Final が来ない場合のフォールバック
+  if finalFallbackWorkItem == nil {
+    let work = DispatchWorkItem {
+      if !hasSentFinal {
+        // 空文字でもFinalを必ず送ることでC#側の完了待ちを解放
+        lastNonEmptyText.withCString { cstr in gCallback?(cstr, true) }
+        hasSentFinal = true
+      }
+      cleanup()
+    }
+    finalFallbackWorkItem = work
+    // 体感と安定性のバランスを取った短い待機（必要に応じて調整）
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8, execute: work)
+  }
+}
 
 private func cleanup() {
+  // タイマーを必ず止める
+  finalFallbackWorkItem?.cancel()
+  finalFallbackWorkItem = nil
+
+  // 認識タスクの終了。Stop 要求のケースでは既に endAudio 済み
   task?.cancel()
   task = nil
+
+  // リクエストとエンジンの後始末（冪等）
   request?.endAudio()
   request = nil
   if let e = engine {

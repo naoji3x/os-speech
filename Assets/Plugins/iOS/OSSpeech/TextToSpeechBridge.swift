@@ -221,8 +221,10 @@ public func tts_synthesize_pcm(
 
   let raw = malloc(bytes)
   if raw == nil { return -3 }
-  floats.withUnsafeBytes { src in
-    memcpy(raw, src.baseAddress, bytes)
+  // 型付きバッファポインタ経由で安全にコピー（withUnsafeBytes 警告回避）
+  _ = floats.withUnsafeBufferPointer { buf in
+    // count > 0 を既に保証しているため baseAddress は非nil
+    memcpy(raw, buf.baseAddress!, bytes)
   }
 
   if let outSamples = outSamples { outSamples.pointee = raw?.assumingMemoryBound(to: Float.self) }

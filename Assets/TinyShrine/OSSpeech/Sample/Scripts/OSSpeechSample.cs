@@ -12,6 +12,8 @@ namespace TinyShrine.OSSpeech.Sample
     /// </summary>
     public class OSSpeechSample : MonoBehaviour
     {
+        private const string Text = "こんにちは、音声合成のテストです。";
+
         [Inject]
         private readonly ISpeechToTextService? speechToTextService;
 
@@ -25,45 +27,58 @@ namespace TinyShrine.OSSpeech.Sample
         private Image buttonImage;
         private bool isRecording;
 
-        [SerializeField]
-        private string text = "こんにちは、音声合成のテストです。";
-
         public void OnMicClick()
         {
+            Debug.Log("OnMicClick" + (isRecording ? " Stop" : " Start"));
             if (isRecording)
             {
-                if (!string.IsNullOrWhiteSpace(field.text))
-                {
-                    this.text = field.text;
-                }
-                speechToTextService?.Stop();
-                buttonImage.color = Color.white;
+                MicOff();
             }
             else
             {
-                this.text = string.Empty;
-                speechToTextService?.Start();
-                buttonImage.color = Color.red;
+                MicOn();
             }
-            isRecording = !isRecording;
         }
 
         public void OnSpeakClick()
         {
-            textToSpeechService?.Speak(this.text);
+            Debug.Log($"OnSpeakClick: {field.text}");
+            MicOff();
+            textToSpeechService?.Speak(field.text);
+        }
+
+        private void MicOn()
+        {
+            if (isRecording || speechToTextService == null)
+            {
+                return;
+            }
+            speechToTextService?.Start();
+            buttonImage.color = Color.red;
+            isRecording = true;
+        }
+
+        private void MicOff()
+        {
+            if (!isRecording || speechToTextService == null)
+            {
+                return;
+            }
+            speechToTextService?.Stop();
+            buttonImage.color = Color.white;
+            isRecording = false;
         }
 
         private void OnPartial(string text)
         {
-            this.text = text;
-            field.text = this.text;
+            Debug.Log($"Partial result: {text}");
+            field.text = text;
         }
 
         private void OnFinal(string text)
         {
             Debug.Log($"Final result: {text}");
-            this.text = text;
-            field.text = this.text;
+            field.text = text;
         }
 
         private void Start()
@@ -75,10 +90,16 @@ namespace TinyShrine.OSSpeech.Sample
                 );
                 return;
             }
-            Debug.Log("OSSpeechSample Awake: Starting initialization...");
+            if (textToSpeechService == null)
+            {
+                Debug.LogError(
+                    "[TextToSpeechService] ITextToSpeechService not injected. Make sure TextToSpeechInstaller is in the scene."
+                );
+                return;
+            }
+            field.text = Text;
             speechToTextService.OnPartial += OnPartial;
             speechToTextService.OnFinal += OnFinal;
-            Debug.Log("OSSpeechSample Awake: Initialization complete.");
         }
 
         private void OnDestroy()
