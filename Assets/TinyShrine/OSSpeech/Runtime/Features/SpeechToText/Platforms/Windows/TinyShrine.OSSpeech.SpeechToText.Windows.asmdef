@@ -1,0 +1,23 @@
+{
+  "name": "TinyShrine.OSSpeech.SpeechToText.Windows",
+  "rootNamespace": "",
+  "references": [
+    "TinyShrine.OSSpeech.SpeechToText",
+    "TinyShrine.OSSpeech.SpeechToText.Installers",
+    "VContainer"
+  ],
+  "includePlatforms": [
+    "Editor",
+    "WindowsStandalone32",
+    "WindowsStandalone64",
+    "WSA"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
