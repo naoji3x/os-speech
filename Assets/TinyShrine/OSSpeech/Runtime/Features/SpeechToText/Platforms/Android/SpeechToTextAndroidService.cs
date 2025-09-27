@@ -60,7 +60,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 SetupEventHandlers();
 
                 // Android Bridge の設定
-                bridge.SetLanguage(currentLocale);
+                bridge.SetLocale(currentLocale);
                 bridge.SetPartialResults(true);
                 bridge.SetPreferOffline(false);
 
@@ -242,7 +242,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
             bridge.OnResults += (resultText) =>
             {
-                textBuffer.Append(resultText + " 。");
+                textBuffer.Append(resultText);
                 var text = textBuffer.ToString();
                 if (isListening)
                 {

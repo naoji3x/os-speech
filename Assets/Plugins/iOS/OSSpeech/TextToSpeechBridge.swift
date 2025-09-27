@@ -28,8 +28,8 @@ public func tts_set_event_callback(_ cb: @escaping TtsEventCallback) {
   synth.delegate = delegateObj
 }
 
-@_cdecl("tts_set_language")
-public func tts_set_language(_ langUtf8: UnsafePointer<CChar>?) -> Int32 {
+@_cdecl("tts_set_locale")
+public func tts_set_locale(_ langUtf8: UnsafePointer<CChar>?) -> Int32 {
   gLang = (langUtf8 != nil) ? String(cString: langUtf8!) : "ja-JP"
   return 0
 }

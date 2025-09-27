@@ -91,9 +91,9 @@ public class TextToSpeechBridge {
         });
     }
 
-    public static void setLanguage(String langTag) {
-        currentLocale = (langTag == null || langTag.isEmpty()) ? Locale.forLanguageTag("ja-JP")
-                : Locale.forLanguageTag(langTag);
+    public static void setLocale(String localeTag) {
+        currentLocale = (localeTag == null || localeTag.isEmpty()) ? Locale.forLanguageTag("ja-JP")
+                : Locale.forLanguageTag(localeTag);
         if (tts != null) {
             tts.setLanguage(currentLocale);
         }

@@ -40,10 +40,10 @@ namespace TinyShrine.OSSpeech.TextToSpeech
         void Init(SynchronizationContext mainContext, string locale = "ja-JP");
 
         /// <summary>
-        /// 発話言語を切り替えます。
+        /// 発話言語ロケールを切り替えます。
         /// </summary>
-        /// <param name="lang">ロケールや言語コード（例: "ja-JP"）。</param>
-        void SetLanguage(string lang);
+        /// <param name="locale">ロケール（例: "ja-JP"）。</param>
+        void SetLocale(string locale);
 
         /// <summary>
         /// 使用するボイス（音声）を識別子で指定します。

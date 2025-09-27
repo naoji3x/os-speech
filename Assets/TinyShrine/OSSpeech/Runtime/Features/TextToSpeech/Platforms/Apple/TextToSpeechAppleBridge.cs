@@ -48,7 +48,7 @@ namespace TinyShrine.OSSpeech.TextToSpeech
         private static extern void tts_set_event_callback(EventCb cb);
 
         [DllImport(LIB, CallingConvention = CallingConvention.Cdecl)]
-        private static extern int tts_set_language([MarshalAs(UnmanagedType.LPUTF8Str)] string lang);
+        private static extern int tts_set_locale([MarshalAs(UnmanagedType.LPUTF8Str)] string locale);
 
         [DllImport(LIB, CallingConvention = CallingConvention.Cdecl)]
         private static extern int tts_set_voice_id([MarshalAs(UnmanagedType.LPUTF8Str)] string id);
@@ -102,7 +102,7 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             }
         }
 
-        public TextToSpeechAppleBridge(SynchronizationContext mainContext, string language = "ja-JP")
+        public TextToSpeechAppleBridge(SynchronizationContext mainContext, string locale = "ja-JP")
         {
             this.mainContext = mainContext;
 
@@ -114,12 +114,12 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             staticCurrent = this; // 現在のインスタンスにディスパッチ
 
             tts_set_event_callback(staticCallback);
-            var result = tts_set_language(string.IsNullOrEmpty(language) ? "ja-JP" : language);
+            var result = tts_set_locale(string.IsNullOrEmpty(locale) ? "ja-JP" : locale);
         }
 
-        public void SetLanguage(string lang)
+        public void SetLocale(string locale)
         {
-            var result = tts_set_language(string.IsNullOrEmpty(lang) ? "ja-JP" : lang);
+            var result = tts_set_locale(string.IsNullOrEmpty(locale) ? "ja-JP" : locale);
         }
 
         /// <summary>identifier か language（例: "ja-JP"）。null で既定。</summary>

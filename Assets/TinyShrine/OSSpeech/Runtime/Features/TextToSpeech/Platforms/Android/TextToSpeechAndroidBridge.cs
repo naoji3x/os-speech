@@ -155,16 +155,16 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             SafeCallStatic("init", unityActivity, this);
 
             // 言語設定
-            SetLanguage(language);
+            SetLocale(language);
         }
 
         // ---- Public API ----
 
         /// <summary>言語設定（例: "ja-JP", "en-US"）</summary>
-        public void SetLanguage(string languageTag)
+        public void SetLocale(string locale)
         {
             ThrowIfDisposed();
-            SafeCallStatic("setLanguage", string.IsNullOrEmpty(languageTag) ? "ja-JP" : languageTag);
+            SafeCallStatic("setLocale", string.IsNullOrEmpty(locale) ? "ja-JP" : locale);
         }
 
         /// <summary>Androidでは Voice#getName() を identifier とみなします。</summary>

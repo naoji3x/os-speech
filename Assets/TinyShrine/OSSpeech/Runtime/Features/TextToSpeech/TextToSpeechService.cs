@@ -37,7 +37,7 @@ namespace TinyShrine.OSSpeech.TextToSpeech
         private static extern void tts_set_event_callback(EventCb cb);
 
         [DllImport(LIB)]
-        private static extern int tts_set_language([MarshalAs(UnmanagedType.LPUTF8Str)] string lang);
+        private static extern int tts_set_locale([MarshalAs(UnmanagedType.LPUTF8Str)] string locale);
 
         [DllImport(LIB)]
         private static extern int tts_set_voice_id([MarshalAs(UnmanagedType.LPUTF8Str)] string id);
@@ -80,15 +80,15 @@ namespace TinyShrine.OSSpeech.TextToSpeech
         static EventCb _keep; // GC対策（AOT）
 
         /// <summary>メインスレッドで呼ぶこと。SynchronizationContext を捕まえます。</summary>
-        public static void Init(SynchronizationContext? mainContext = null, string language = "ja-JP")
+        public static void Init(SynchronizationContext? mainContext = null, string locale = "ja-JP")
         {
             _main = mainContext ?? SynchronizationContext.Current;
             _keep = OnNativeEvent; // デリゲート保持
             tts_set_event_callback(_keep);
-            tts_set_language(string.IsNullOrEmpty(language) ? "ja-JP" : language);
+            tts_set_locale(string.IsNullOrEmpty(locale) ? "ja-JP" : locale);
         }
 
-        public static void SetLanguage(string lang) => tts_set_language(string.IsNullOrEmpty(lang) ? "ja-JP" : lang);
+        public static void SetLocale(string locale) => tts_set_locale(string.IsNullOrEmpty(locale) ? "ja-JP" : locale);
 
         /// <summary>identifier か language（例: "ja-JP"）。null で既定。</summary>
         public static void SetVoiceId(string identifierOrNull) => tts_set_voice_id(identifierOrNull);
@@ -228,7 +228,7 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             }
         }
 
-        public static void Init(SynchronizationContext? mainContext = null, string language = "ja-JP")
+        public static void Init(SynchronizationContext? mainContext = null, string locale = "ja-JP")
         {
             Debug.Log("[TextToSpeechService] Android TextToSpeech init");
             using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
@@ -236,13 +236,13 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             bridge = new AndroidJavaClass("jp.tinyshrine.osspeech.TextToSpeechBridge");
             Debug.Log("[TextToSpeechService] Android TextToSpeech init" + bridge);
             bridge.CallStatic("init", activity, new CallbackProxy());
-            if (!string.IsNullOrEmpty(language))
-                SetLanguage(language);
+            if (!string.IsNullOrEmpty(locale))
+                SetLocale(locale);
         }
 
-        public static void SetLanguage(string lang)
+        public static void SetLocale(string locale)
         {
-            bridge?.CallStatic("setLanguage", string.IsNullOrEmpty(lang) ? "ja-JP" : lang);
+            bridge?.CallStatic("setLocale", string.IsNullOrEmpty(locale) ? "ja-JP" : locale);
         }
 
         /// <summary>Androidでは Voice#getName() を identifier とみなします。</summary>
@@ -408,10 +408,10 @@ namespace TinyShrine.OSSpeech.TextToSpeech
         }
 #else
         // ---- ここから iOS/mac 以外のスタブ実装 ------------------------------
-        public static void Init(SynchronizationContext? mainContext = null, string language = "ja-JP") =>
+        public static void Init(SynchronizationContext? mainContext = null, string locale = "ja-JP") =>
             Debug.LogWarning("[TextToSpeechService] iOS/macOS 実機ビルドで有効になります（現在はスタブ）。");
 
-        public static void SetLanguage(string lang)
+        public static void SetLocale(string locale)
         {
             Debug.LogWarning("[TextToSpeechService] このプラットフォームではネイティブTTSは無効（スタブ）。");
         }

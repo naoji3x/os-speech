@@ -69,8 +69,8 @@ namespace TinyShrine.OSSpeech.SpeechToText
             // Java 側を初期化
             SafeCallStatic("init", unityActivity, this);
 
-            // 言語設定
-            SetLanguage(locale);
+            // 言語設定（ロケール）
+            SetLocale(locale);
         }
 
         // ---- イベント（null 許容）----
@@ -113,11 +113,11 @@ namespace TinyShrine.OSSpeech.SpeechToText
             return SafeCallStaticRet<bool, AndroidJavaObject?>("isRecognitionAvailable", act);
         }
 
-        /// <summary>言語設定（例: "ja-JP", "en-US"）</summary>
-        public void SetLanguage(string languageTag)
+        /// <summary>言語ロケール設定（例: "ja-JP", "en-US"）</summary>
+        public void SetLocale(string locale)
         {
             ThrowIfDisposed();
-            SafeCallStatic("setLanguage", languageTag);
+            SafeCallStatic("setLocale", locale);
         }
 
         /// <summary>オフライン優先設定</summary>

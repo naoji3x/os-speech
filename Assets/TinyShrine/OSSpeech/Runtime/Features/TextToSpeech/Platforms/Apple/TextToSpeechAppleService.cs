@@ -14,7 +14,7 @@ namespace TinyShrine.OSSpeech.TextToSpeech
         public event Action OnCancel = static () => { };
         public event Action OnError = static () => { };
 
-        public void Init(SynchronizationContext mainContext, string language = "ja-JP")
+        public void Init(SynchronizationContext mainContext, string locale = "ja-JP")
         {
             if (bridge != null)
             {
@@ -26,7 +26,7 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             try
             {
                 // Apple Bridge を初期化
-                bridge = new TextToSpeechAppleBridge(mainContext, language);
+                bridge = new TextToSpeechAppleBridge(mainContext, locale);
 
                 // イベントハンドラーを設定
                 bridge.OnStart += () => OnStart?.Invoke();
@@ -34,8 +34,8 @@ namespace TinyShrine.OSSpeech.TextToSpeech
                 bridge.OnCancel += () => OnCancel?.Invoke();
                 bridge.OnError += () => OnError?.Invoke();
 
-                // 言語を設定
-                SetLanguage(language);
+                // ロケールを設定
+                SetLocale(locale);
             }
             catch (Exception ex)
             {
@@ -44,13 +44,13 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             }
         }
 
-        public void SetLanguage(string lang)
+        public void SetLocale(string locale)
         {
             if (!EnsureReady())
             {
                 return;
             }
-            bridge!.SetLanguage(lang);
+            bridge!.SetLocale(locale);
         }
 
         public void SetVoiceId(string identifierOrNull)

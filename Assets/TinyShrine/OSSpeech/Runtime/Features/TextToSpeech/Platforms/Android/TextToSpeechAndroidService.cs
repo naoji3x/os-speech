@@ -43,14 +43,14 @@ namespace TinyShrine.OSSpeech.TextToSpeech
         }
 
         /// <inheritdoc />
-        public void SetLanguage(string lang)
+        public void SetLocale(string locale)
         {
             if (!EnsureReady())
             {
                 return;
             }
 
-            bridge!.SetLanguage(lang);
+            bridge!.SetLocale(locale);
         }
 
         /// <inheritdoc />

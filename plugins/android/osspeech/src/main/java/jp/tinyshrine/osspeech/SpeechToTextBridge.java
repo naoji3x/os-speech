@@ -67,7 +67,7 @@ public class SpeechToTextBridge {
         return SpeechRecognizer.isRecognitionAvailable(ctx);
     }
 
-    public static void setLanguage(String langTag) {
+    public static void setLocale(String langTag) {
         if (langTag == null || langTag.isEmpty()) {
             languageTag = "ja-JP";
         } else {

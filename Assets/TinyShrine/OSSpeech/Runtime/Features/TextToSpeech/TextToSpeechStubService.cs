@@ -19,7 +19,10 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             Debug.Log("[TextToSpeechNoOpService] Init called (No-Op)");
         }
 
-        public void SetLanguage(string lang) => Debug.Log("[TextToSpeechNoOpService] SetLanguage ignored");
+        public void SetLocale(string locale)
+        {
+            Debug.Log("[TextToSpeechNoOpService] SetLocale ignored");
+        }
 
         public void SetVoiceId(string identifierOrNull) => Debug.Log("[TextToSpeechNoOpService] SetVoiceId ignored");
 
