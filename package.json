@@ -1,7 +1,5 @@
 {
-  "name": "vroid-game-template",
   "private": true,
-  "description": "Sample repo with manual CHANGELOG + automated checks/releases",
   "scripts": {
     "prepare": "lefthook install",
     "format": "prettier --write \"**/*.{js,mjs,ts,tsx,json,md}\" && npm run format:cs",

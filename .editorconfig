@@ -3,7 +3,6 @@ root = true
 # All files
 [*]
 charset = utf-8
-end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
@@ -156,8 +155,12 @@ dotnet_analyzer_diagnostic.severity = none
 [*.java]
 indent_style = space
 indent_size = 4
-max_line_length = 120
 trim_trailing_whitespace = true
 
 [*.cs]
 dotnet_diagnostic.IDE0079.severity = none
+
+[*.swift]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true

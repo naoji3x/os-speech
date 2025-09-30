@@ -168,6 +168,9 @@
       "source.organizeImports": "explicit"
     }
   },
+  "[swift]": {
+    "editor.defaultFormatter": "swiftlang.swift-vscode"
+  },
   "java.format.enabled": true,
   "java.format.onType.enabled": true,
   "java.format.settings.url": "${workspaceFolder}/.vscode/java-formatter.xml",
