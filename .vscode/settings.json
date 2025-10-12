@@ -93,10 +93,12 @@
     "Temp/": true
   },
   "files.associations": {
+    "*.tsx": "typescriptreact",
     "*.asset": "yaml",
     "*.meta": "yaml",
     "*.prefab": "yaml",
-    "*.unity": "yaml"
+    "*.unity": "yaml",
+    "vector": "cpp"
   },
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
@@ -120,6 +122,8 @@
     "finalizer",
     "GGUF",
     "gradlew",
+    "Haruka",
+    "HRESULT",
     "idxs",
     "inputactions",
     "iphoneos",
@@ -176,5 +180,20 @@
   "java.format.settings.url": "${workspaceFolder}/.vscode/java-formatter.xml",
   "java.checkstyle.configuration": "${workspaceFolder}/.vscode/checkstyle.xml",
   "java.configuration.updateBuildConfiguration": "automatic",
-  "java.format.settings.profile": "VSCode"
+  "java.format.settings.profile": "VSCode",
+
+  "files.eol": "\n",
+  "editor.renderWhitespace": "boundary",
+
+  "terminal.integrated.profiles.windows": {
+    "MSVC x64 (vcvars64)": {
+      "path": "C:\\Windows\\System32\\cmd.exe",
+      "args": [
+        "/k",
+        "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat"
+      ],
+      "icon": "tools"
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "MSVC x64 (vcvars64)"
 }
