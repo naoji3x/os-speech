@@ -10,22 +10,21 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
 #if UNITY_STANDALONE_WIN || UNITY_WSA || UNITY_EDITOR_WIN
         private UnityEngine.Windows.Speech.DictationRecognizer? recognizer;
-#endif
-
-        private bool initialized;
         private bool listening;
+        private bool initialized;
         private string currentLocale = "ja-JP";
+#endif
 
         public void Init(SynchronizationContext mainContext, string locale = "ja-JP")
         {
+#if UNITY_STANDALONE_WIN || UNITY_WSA || UNITY_EDITOR_WIN
             if (initialized)
             {
-                UnityEngine.Debug.LogWarning("[WinBridge] Already initialized");
+                UnityEngine.Debug.LogWarning("[SpeechToTextWindowsBridge] Already initialized");
                 return;
             }
             currentLocale = string.IsNullOrEmpty(locale) ? currentLocale : locale;
 
-#if UNITY_STANDALONE_WIN || UNITY_WSA || UNITY_EDITOR_WIN
             try
             {
                 recognizer = new UnityEngine.Windows.Speech.DictationRecognizer(
@@ -35,30 +34,32 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 recognizer.DictationResult += (text, confidence) => OnFinal?.Invoke(text);
                 recognizer.DictationError += (error, hResult) =>
                 {
-                    UnityEngine.Debug.LogError($"[WinBridge] Error: {error} (0x{hResult:X8})");
+                    UnityEngine.Debug.LogError($"[SpeechToTextWindowsBridge] Error: {error} (0x{hResult:X8})");
                 };
                 initialized = true;
-                UnityEngine.Debug.Log($"[WinBridge] Initialized (locale={currentLocale})");
+                UnityEngine.Debug.Log($"[SpeechToTextWindowsBridge] Initialized (locale={currentLocale})");
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogError($"[WinBridge] Init failed: {ex.Message}");
+                UnityEngine.Debug.LogError($"[SpeechToTextWindowsBridge] Init failed: {ex.Message}");
                 recognizer = null;
                 initialized = false;
             }
 #else
-            UnityEngine.Debug.LogWarning("[WinBridge] Windows speech API is not available on this platform.");
+            UnityEngine.Debug.LogWarning(
+                "[SpeechToTextWindowsBridge] Windows speech API is not available on this platform."
+            );
 #endif
         }
 
         public bool Start()
         {
+#if UNITY_STANDALONE_WIN || UNITY_WSA || UNITY_EDITOR_WIN
             if (!initialized)
             {
-                UnityEngine.Debug.LogError("[WinBridge] Not initialized");
+                UnityEngine.Debug.LogError("[SpeechToTextWindowsBridge] Not initialized");
                 return false;
             }
-#if UNITY_STANDALONE_WIN || UNITY_WSA || UNITY_EDITOR_WIN
             if (listening)
                 return true;
             try
@@ -69,7 +70,7 @@ namespace TinyShrine.OSSpeech.SpeechToText
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogError($"[WinBridge] Start failed: {ex.Message}");
+                UnityEngine.Debug.LogError($"[SpeechToTextWindowsBridge] Start failed: {ex.Message}");
                 return false;
             }
 #else
@@ -79,18 +80,18 @@ namespace TinyShrine.OSSpeech.SpeechToText
 
         public void Stop()
         {
+#if UNITY_STANDALONE_WIN || UNITY_WSA || UNITY_EDITOR_WIN
             if (!initialized || !listening)
             {
                 return;
             }
-#if UNITY_STANDALONE_WIN || UNITY_WSA || UNITY_EDITOR_WIN
             try
             {
                 recognizer?.Stop();
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogError($"[WinBridge] Stop failed: {ex.Message}");
+                UnityEngine.Debug.LogError($"[SpeechToTextWindowsBridge] Stop failed: {ex.Message}");
             }
             finally
             {
@@ -117,10 +118,10 @@ namespace TinyShrine.OSSpeech.SpeechToText
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogError($"[WinBridge] Dispose failed: {ex.Message}");
+                UnityEngine.Debug.LogError($"[SpeechToTextWindowsBridge] Dispose failed: {ex.Message}");
             }
-#endif
             initialized = false;
+#endif
         }
     }
 }
