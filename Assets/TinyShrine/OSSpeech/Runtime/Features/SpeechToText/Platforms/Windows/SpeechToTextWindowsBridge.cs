@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace TinyShrine.OSSpeech.SpeechToText
 {
-    public sealed class SpeechToTextWindowsBridge
+    public sealed class SpeechToTextWindowsBridge : IDisposable
     {
         public event Action<string> OnPartial = static _ => { };
         public event Action<string> OnFinal = static _ => { };
@@ -61,7 +61,10 @@ namespace TinyShrine.OSSpeech.SpeechToText
                 return false;
             }
             if (listening)
+            {
                 return true;
+            }
+
             try
             {
                 recognizer?.Start();

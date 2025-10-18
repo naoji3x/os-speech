@@ -13,24 +13,24 @@ endif()
 # Unity の Plugins/<CPU> へビルド成果をコピー
 set(UNITY_PLUGIN_DIR "${CMAKE_SOURCE_DIR}/../../../Assets/Plugins/${UNITY_CPU_DIR}")
 
-add_library(TtsPlugin SHARED
-    src/TtsPlugin.cpp
-    src/TtsPlugin.h
+add_library(TextToSpeechBridge SHARED
+    src/TextToSpeechBridge.cpp
+    src/TextToSpeechBridge.h
 )
 
 if (MSVC)
-  target_compile_options(TtsPlugin PRIVATE /W4 /permissive- /EHsc /Zc:__cplusplus /utf-8)
+  target_compile_options(TextToSpeechBridge PRIVATE /W4 /permissive- /EHsc /Zc:__cplusplus /utf-8)
   # /MD（VC++再頒布に依存）。静的リンクにしたい場合は /MT に変更可。
-  target_compile_options(TtsPlugin PRIVATE /MD)
+  target_compile_options(TextToSpeechBridge PRIVATE /MD)
 endif()
 
 # Windows / SAPI / COM
-target_compile_definitions(TtsPlugin PRIVATE UNICODE _UNICODE)
-target_link_libraries(TtsPlugin PRIVATE ole32 oleaut32 uuid)
+target_compile_definitions(TextToSpeechBridge PRIVATE UNICODE _UNICODE)
+target_link_libraries(TextToSpeechBridge PRIVATE ole32 oleaut32 uuid)
 
 # ビルド後コピー
-add_custom_command(TARGET TtsPlugin POST_BUILD
+add_custom_command(TARGET TextToSpeechBridge POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${UNITY_PLUGIN_DIR}"
-    COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:TtsPlugin>" "${UNITY_PLUGIN_DIR}/"
-    COMMENT "Copying TtsPlugin.dll to Assets/Plugins/${UNITY_CPU_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:TextToSpeechBridge>" "${UNITY_PLUGIN_DIR}/"
+    COMMENT "Copying TextToSpeechBridge.dll to Assets/Plugins/${UNITY_CPU_DIR}"
 )

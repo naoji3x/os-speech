@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 
 /// <summary>
@@ -8,9 +10,9 @@ using UnityEngine;
 /// </summary>
 namespace TinyShrine.OSSpeech.TextToSpeech
 {
-    public static class TtsBridge
+    public static class TextToSpeechWindowsBridge
     {
-        private const string DLL = "TtsPlugin"; // Assets/Plugins/x86_64/TtsPlugin.dll
+        private const string DLL = "TextToSpeechBridge"; // Assets/Plugins/x86_64/TextToSpeechBridge.dll
 
         // ============================
         // Streaming (追加機能)
@@ -68,7 +70,8 @@ namespace TinyShrine.OSSpeech.TextToSpeech
 
             try
             {
-                if (size <= 44) // 最小のWAVヘッダすら満たさない
+                // 最小のWAVヘッダすら満たさない
+                if (size <= 44)
                 {
                     throw new InvalidDataException("Synthesized WAV size is too small.");
                 }
@@ -154,6 +157,9 @@ namespace TinyShrine.OSSpeech.TextToSpeech
         /// <summary>
         /// 非同期でテキスト合成を開始（OnPcmChunk で逐次受信、OnSynthesisComplete で完了）
         /// </summary>
+        [Obsolete(
+            "Use StartSpeak(text) or SpeakUntilCompletedAsync(text) instead. This method name suggests TAP but returns void."
+        )]
         public static void SpeakAsync(string text)
         {
             if (text is null)
@@ -161,8 +167,79 @@ namespace TinyShrine.OSSpeech.TextToSpeech
                 throw new ArgumentNullException(nameof(text));
             }
             EnsureStreamingCallbacksRegistered();
-            var hr = TTS_SpeakAsync(text);
-            ThrowIfFailed(hr, nameof(TTS_SpeakAsync));
+            var hr = TTS_StartSpeak(text);
+            ThrowIfFailed(hr, nameof(TTS_StartSpeak));
+        }
+
+        /// <summary>
+        /// 合成を開始（イベント・コールバックベース）。戻り値は即時で、音声は OnPcmChunk / OnSynthesisComplete に流れます。
+        /// </summary>
+        public static void StartSpeak(string text)
+        {
+            if (text is null)
+            {
+                throw new ArgumentNullException(nameof(text));
+            }
+            EnsureStreamingCallbacksRegistered();
+            var hr = TTS_StartSpeak(text);
+            ThrowIfFailed(hr, nameof(StartSpeak));
+        }
+
+        /// <summary>
+        /// OnSynthesisComplete を待って完了する Task ラッパー（TAP）。
+        /// 成否コード（0=成功、<0=キャンセル、>0=HRESULT）を結果として返します。
+        /// </summary>
+        public static Task<int> SpeakUntilCompletedAsync(string text, CancellationToken cancellationToken = default)
+        {
+            if (text is null)
+            {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            EnsureStreamingCallbacksRegistered();
+
+            var tcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+            void Handler(int status)
+            {
+                // 解除は必ず一度だけ
+                OnSynthesisComplete -= Handler;
+                if (status == 0)
+                {
+                    tcs.TrySetResult(0);
+                }
+                else if (status < 0)
+                {
+                    tcs.TrySetCanceled();
+                }
+                else
+                {
+                    tcs.TrySetException(new System.ComponentModel.Win32Exception(status, $"TTS failed: 0x{status:X8}"));
+                }
+            }
+            OnSynthesisComplete += Handler;
+
+            if (cancellationToken.CanBeCanceled)
+            {
+                cancellationToken.Register(() =>
+                {
+                    try
+                    {
+                        TTS_Cancel();
+                    }
+                    catch
+                    {
+                        // ignore cancel race
+                    }
+                });
+            }
+
+            var hr = TTS_StartSpeak(text);
+            if (hr != 0)
+            {
+                OnSynthesisComplete -= Handler;
+                ThrowIfFailed(hr, nameof(TTS_StartSpeak));
+            }
+            return tcs.Task;
         }
 
         /// <summary>
@@ -211,7 +288,7 @@ namespace TinyShrine.OSSpeech.TextToSpeech
         );
 
         [DllImport(DLL, CallingConvention = CallingConvention.Cdecl)]
-        private static extern int TTS_SpeakAsync([MarshalAs(UnmanagedType.LPUTF8Str)] string textUtf8);
+        private static extern int TTS_StartSpeak([MarshalAs(UnmanagedType.LPUTF8Str)] string textUtf8);
 
         [DllImport(DLL, CallingConvention = CallingConvention.Cdecl)]
         private static extern void TTS_Cancel();

@@ -1,4 +1,4 @@
-#include "TtsPlugin.h"
+#include "TextToSpeechBridge.h"
 #include <windows.h>
 #include <sapi.h>
 #include <sphelper.h> // CSpStreamFormat, etc.
@@ -287,7 +287,7 @@ extern "C"
         }
     }
 
-    int TTS_SpeakAsync(const char *textUtf8)
+    int TTS_StartSpeak(const char *textUtf8)
     {
         if (!g_voice)
             return -1;

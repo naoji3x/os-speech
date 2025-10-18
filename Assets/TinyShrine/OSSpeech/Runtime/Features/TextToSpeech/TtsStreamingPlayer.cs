@@ -30,7 +30,7 @@ namespace TinyShrine.OSSpeech.TextToSpeech
             audioSource.playOnAwake = false;
             audioSource.loop = true;
 
-            var fmt = TtsBridge.GetOutputPcmFormat();
+            var fmt = TextToSpeechWindowsBridge.GetOutputPcmFormat();
             inputSampleRate = fmt.sampleRate;
             inputChannels = fmt.channels;
             if (fmt.bitsPerSample != 16)
@@ -46,8 +46,8 @@ namespace TinyShrine.OSSpeech.TextToSpeech
 
         private void OnEnable()
         {
-            TtsBridge.OnPcmChunk += OnChunk;
-            TtsBridge.OnSynthesisComplete += OnComplete;
+            TextToSpeechWindowsBridge.OnPcmChunk += OnChunk;
+            TextToSpeechWindowsBridge.OnSynthesisComplete += OnComplete;
             if (!audioSource.isPlaying)
             {
                 audioSource.Play();
@@ -56,8 +56,8 @@ namespace TinyShrine.OSSpeech.TextToSpeech
 
         private void OnDisable()
         {
-            TtsBridge.OnPcmChunk -= OnChunk;
-            TtsBridge.OnSynthesisComplete -= OnComplete;
+            TextToSpeechWindowsBridge.OnPcmChunk -= OnChunk;
+            TextToSpeechWindowsBridge.OnSynthesisComplete -= OnComplete;
             if (audioSource.isPlaying)
             {
                 audioSource.Stop();

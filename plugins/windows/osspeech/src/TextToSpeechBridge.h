@@ -32,7 +32,7 @@ extern "C"
 
     // 非同期でテキスト合成を開始（コールバックで逐次ストリーミング）
     // 返り値0=受理、<0=エラー/HRESULT
-    TTS_API int TTS_SpeakAsync(const char *textUtf8);
+    TTS_API int TTS_StartSpeak(const char *textUtf8);
 
     // 再生/合成をキャンセル（コールバックの status に負値を返す）
     TTS_API void TTS_Cancel();
